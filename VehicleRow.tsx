@@ -202,7 +202,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2">
-               <div className="absolute w-[2px] h-2 bg-current origin-bottom bottom-1/2 animate-[spin_3s_linear_infinite]"></div>
+               <div className="absolute left-1/2 bottom-1/2 w-[1.5px] h-[5px] bg-current rounded-full origin-bottom -translate-x-px animate-[spin_6s_linear_infinite]"></div>
+               <div className="absolute left-1/2 bottom-1/2 w-[2px] h-[7px] bg-current rounded-full origin-bottom -translate-x-px animate-[spin_3s_linear_infinite]"></div>
             </div>
           )}
           
