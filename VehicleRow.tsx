@@ -207,7 +207,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
-               <div className="flex items-center justify-center w-full gap-2">
+               <div className="flex items-center justify-center w-full gap-2 -translate-x-[15%]">
                   <FaseDeTesteCarAnimation />
                   <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
                </div>
