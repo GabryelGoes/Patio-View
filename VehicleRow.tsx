@@ -226,7 +226,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
                 </div>
               </div>
             ) : isGarantia ? (
-              <div className="flex items-center justify-center gap-2 w-full -translate-x-[30%]">
+              <div className="flex items-center justify-center gap-2 w-full -translate-x-[25%]">
                 <GearAnimation />
                 <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
               </div>
