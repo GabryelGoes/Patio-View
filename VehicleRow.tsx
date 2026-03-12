@@ -203,7 +203,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
-                <div className="absolute left-1/2 bottom-0 w-[1.5px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
+                <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
               </div>
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
@@ -299,8 +299,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           from { transform: translate(-50%, -50%) rotate(0deg); }
           to { transform: translate(-50%, -50%) rotate(360deg); }
         }
-        .animate-clock-hand-fast { animation: clock-hand-fast 3s linear infinite; }
-        .animate-clock-hand-slow { animation: clock-hand-slow 6s linear infinite; }
+        .animate-clock-hand-fast { animation: clock-hand-fast 5s linear infinite; }
+        .animate-clock-hand-slow { animation: clock-hand-slow 10s linear infinite; }
       `}</style>
     </div>
   );
