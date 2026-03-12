@@ -66,6 +66,14 @@ function formatLastActivity(value: string | null | undefined): string {
   }
 }
 
+/** Retorna apenas o primeiro nome (primeira palavra) do cliente. */
+function firstNameOnly(fullName: string | null | undefined): string {
+  const name = (fullName ?? '').trim();
+  if (!name) return 'Cliente';
+  const first = name.split(/\s+/)[0];
+  return first || 'Cliente';
+}
+
 export async function fetchWorkshopData(): Promise<WorkshopData> {
   if (!API_BASE) {
     console.warn('VITE_API_BASE não configurada.');
@@ -88,7 +96,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
     const vehicles: Vehicle[] = rows
       .filter((row) => row.status !== 'CANCELLED')
       .map((row) => {
-        const customerName = row.customers?.name ?? 'Cliente';
+        const customerName = firstNameOnly(row.customers?.name);
         const model = row.order_type === 'module'
           ? (row.module_identification || row.vehicle_model || 'Módulo')
           : (row.vehicle_model || row.module_identification || 'Veículo');
