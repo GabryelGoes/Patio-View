@@ -56,9 +56,9 @@ const BrakeDiscProfile: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const GearAnimation: React.FC = () => (
-  <div className="relative w-10 h-10 shrink-0 flex items-center justify-center mr-2">
-    <svg viewBox="0 0 32 32" className="w-10 h-10 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] animate-gear-spin" fill="currentColor" fillRule="evenodd" xmlns="http://www.w3.org/2000/svg">
-      <path d="M28 16L23.39 19.06L24.49 24.49L19.06 23.39L16 28L12.61 23.39L7.51 24.49L8.61 19.06L4 16L8.61 12.61L7.51 7.51L12.61 8.61L16 4L23.39 12.61L24.49 7.51L23.39 19.06ZM16 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+  <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
+    <svg viewBox="0 0 24 24" className="w-9 h-9 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] animate-gear-spin" fill="currentColor" fillRule="evenodd" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 12L17.54 14.3L19.9 19.9L14.3 17.54L12 22L6.46 17.54L4.1 19.9L6.46 14.3L2 12L6.46 9.7L4.1 4.1L14.3 6.46L12 2L17.54 6.46L19.9 4.1L17.54 9.7ZM12 12m-4 0a4 4 0 1 1 8 0a4 4 0 1 1-8 0Z" />
     </svg>
   </div>
 );
@@ -197,7 +197,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'justify-center' : ''}`}>
           {!isFinalizado && isEmServico && <CarLiftAnimation />}
-          {!isFinalizado && isGarantia && <GearAnimation />}
           {!isFinalizado && isAvaliacaoTecnica && <MagnifierAnimation />}
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
@@ -227,7 +226,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
                 </div>
               </div>
             ) : isGarantia ? (
-              <div className="flex items-center justify-center gap-2 shrink-0">
+              <div className="flex items-center justify-center gap-2 w-full">
+                <GearAnimation />
                 <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
               </div>
             ) : (
