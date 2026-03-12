@@ -191,8 +191,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
 
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'justify-center' : ''}`}>
-          {!isFinalizado && isEmServico && <CarLiftAnimation />}
-          {!isFinalizado && isAvaliacaoTecnica && <MagnifierAnimation />}
+          {isEmServico ? (
+            <div className="flex items-center justify-center gap-2 w-full -translate-x-[10%]">
+              <CarLiftAnimation />
+              <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
+            </div>
+          ) : null}
+          {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
@@ -225,7 +230,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
                 <GearAnimation />
                 <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
               </div>
-            ) : (
+            ) : isEmServico ? null : (
               <div className={`flex items-center gap-2 w-full`}>
                 {isAprovado && !isNaoAprovado && !isFinalizado && <span className="text-green-500 font-black text-4xl animate-bounce shrink-0 drop-shadow-md">✓</span>}
                 {isNaoAprovado && <span className="text-red-500 font-black text-3xl animate-pulse shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] mr-1">✕</span>}
