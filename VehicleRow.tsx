@@ -55,10 +55,10 @@ const BrakeDiscProfile: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const WrenchAnimation: React.FC = () => (
-  <div className="relative w-12 h-12 shrink-0 flex items-center justify-center animate-wrench-action ml-2">
-    <svg viewBox="0 0 512 512" className="w-10 h-10 fill-current text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]" xmlns="http://www.w3.org/2000/svg">
-      <path d="M507.73,71.21L440.79,4.27c-5.69-5.69-14.91-5.69-20.6,0l-74.84,74.84c-31.2-12.08-68.42-6.55-94.41,19.44 c-26.6,26.6-31.9,65.04-15.9,96.39L11.66,418.32c-15.54,15.54-15.54,40.74,0,56.28l37.73,37.73c15.54,15.54,40.74,15.54,56.28,0 l223.38-223.38c31.35,16,69.79,10.7,96.39-15.9c25.99-25.99,31.52-63.21,19.44-94.41l74.84-74.84 C513.42,86.12,513.42,76.9,507.73,71.21z M421.46,192.41c-16.19,16.19-42.44,16.19-58.63,0c-16.19-16.19-16.19-42.44,0-58.63 c16.19-16.19,42.44-16.19,58.63,0C437.65,149.97,437.65,176.22,421.46,192.41z M86.62,458.2c-10.43,10.43-27.35,10.43-37.78,0 c-10.43-10.43-10.43-27.35,0-37.78c10.43-10.43,27.35-10.43,37.78,0C97.05,430.85,97.05,447.77,86.62,458.2z"/>
+const GearAnimation: React.FC = () => (
+  <div className="relative w-10 h-10 shrink-0 flex items-center justify-center mr-2">
+    <svg viewBox="0 0 32 32" className="w-10 h-10 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] animate-gear-spin" fill="currentColor" fillRule="evenodd" xmlns="http://www.w3.org/2000/svg">
+      <path d="M28 16L23.39 19.06L24.49 24.49L19.06 23.39L16 28L12.61 23.39L7.51 24.49L8.61 19.06L4 16L8.61 12.61L7.51 7.51L12.61 8.61L16 4L23.39 12.61L24.49 7.51L23.39 19.06ZM16 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
     </svg>
   </div>
 );
@@ -197,7 +197,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'justify-center' : ''}`}>
           {!isFinalizado && isEmServico && <CarLiftAnimation />}
-          {!isFinalizado && isGarantia && <WrenchAnimation />}
+          {!isFinalizado && isGarantia && <GearAnimation />}
           {!isFinalizado && isAvaliacaoTecnica && <MagnifierAnimation />}
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
@@ -213,7 +213,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
-               <div className="flex items-center justify-center w-full">
+               <div className="flex items-center justify-center w-full gap-2">
                   <TestDriveCarAnimation />
                   <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
                </div>
@@ -226,11 +226,15 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
                    <FastDiscAnimation />
                 </div>
               </div>
+            ) : isGarantia ? (
+              <div className="flex items-center justify-center gap-2 shrink-0">
+                <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
+              </div>
             ) : (
-              <div className={`flex items-center gap-2 w-full ${isFinalizado || isGarantia ? 'justify-center' : ''}`}>
+              <div className={`flex items-center gap-2 w-full`}>
                 {isAprovado && !isNaoAprovado && !isFinalizado && <span className="text-green-500 font-black text-4xl animate-bounce shrink-0 drop-shadow-md">✓</span>}
                 {isNaoAprovado && <span className="text-red-500 font-black text-3xl animate-pulse shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] mr-1">✕</span>}
-                <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass} ${isGarantia || isFinalizado ? 'text-center w-full' : ''}`}>
+                <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>
                   {displayStage}
                 </p>
               </div>
@@ -264,11 +268,11 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         @keyframes lift-move-workshop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
         .animate-lift-move-workshop { animation: lift-move-workshop 4s ease-in-out infinite; }
 
-        @keyframes wrench-action {
-          0%, 100% { transform: rotate(-15deg); }
-          50% { transform: rotate(20deg) scale(1.1); }
+        @keyframes gear-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
-        .animate-wrench-action { animation: wrench-action 0.8s ease-in-out infinite; transform-origin: 30% 70%; }
+        .animate-gear-spin { animation: gear-spin 4s linear infinite; }
 
         @keyframes magnifier-scan {
           0% { transform: translate(0, 0) rotate(0deg); }
