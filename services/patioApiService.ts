@@ -49,11 +49,11 @@ interface ServiceOrderRow {
 }
 
 function formatDeliveryDate(value: string | null | undefined): string {
-  if (!value) return 'Sem data';
+  if (!value) return '---';
   try {
     return new Date(value).toLocaleDateString('pt-BR');
   } catch {
-    return 'Sem data';
+    return '---';
   }
 }
 
