@@ -116,16 +116,10 @@ const FastDiscAnimation: React.FC = () => (
   </div>
 );
 
-const TestDriveCarAnimation: React.FC = () => (
-  <div className="relative w-12 h-8 shrink-0 flex items-center justify-center mr-3 overflow-visible">
-    <svg viewBox="0 0 60 30" className="w-full h-full fill-white drop-shadow-lg animate-car-test-move overflow-visible" xmlns="http://www.w3.org/2000/svg">
-      {/* Minimalist car body */}
-      <path d="M5,20 L55,20 L52,15 L45,8 L15,8 L8,15 Z" />
-      {/* Wheels */}
-      <circle cx="15" cy="20" r="4.5" fill="#111" stroke="currentColor" strokeWidth="2" />
-      <circle cx="45" cy="20" r="4.5" fill="#111" stroke="currentColor" strokeWidth="2" />
-      {/* Motion lines */}
-      <path d="M-5,15 L0,15 M-8,18 L-2,18" stroke="currentColor" strokeWidth="2" className="opacity-60" />
+const FaseDeTesteGearAnimation: React.FC = () => (
+  <div className="relative w-10 h-10 shrink-0 flex items-center justify-center mr-2">
+    <svg viewBox="0 0 24 24" className="w-9 h-9 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] animate-gear-spin" fill="currentColor" fillRule="evenodd" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18.1125649,13.0304195 C18.1454626,12.7672379 18.1701359,12.5040563 18.1701359,12.2244258 C18.1701359,11.9447953 18.1454626,11.6816137 18.1125649,11.4184321 L19.8479188,10.0614018 C20.0041828,9.93803541 20.045305,9.71597592 19.9466119,9.53503855 L18.3017267,6.68938723 C18.2030336,6.50844986 17.9809741,6.44265446 17.8000367,6.50844986 L15.7521547,7.33089244 C15.3244846,7.00191541 14.8639167,6.73050936 14.3622268,6.52489871 L14.0496986,4.34542588 C14.0250253,4.14803966 13.8523124,4 13.6467017,4 L10.3569314,4 C10.1513208,4 9.97860782,4.14803966 9.95393455,4.34542588 L9.64140637,6.52489871 C9.13971639,6.73050936 8.67914855,7.01013984 8.25147841,7.33089244 L6.20359639,6.50844986 C6.0144346,6.43443003 5.80059953,6.50844986 5.70190642,6.68938723 L4.05702126,9.53503855 C3.95010373,9.71597592 3.99945028,9.93803541 4.15571437,10.0614018 L5.89106821,11.4184321 C5.85817051,11.6816137 5.83349723,11.9530197 5.83349723,12.2244258 C5.83349723,12.4958318 5.85817051,12.7672379 5.89106821,13.0304195 L4.15571437,14.3874498 C3.99945028,14.5108161 3.95832815,14.7328756 4.05702126,14.913813 L5.70190642,17.7594643 C5.80059953,17.9404017 6.02265902,18.0061971 6.20359639,17.9404017 L8.25147841,17.1179591 C8.67914855,17.4469361 9.13971639,17.7183422 9.64140637,17.9239528 L9.95393455,20.1034257 C9.97860782,20.3008119 10.1513208,20.4488516 10.3569314,20.4488516 L13.6467017,20.4488516 C13.8523124,20.4488516 14.0250253,20.3008119 14.0496986,20.1034257 L14.3622268,17.9239528 C14.8639167,17.7183422 15.3244846,17.4387117 15.7521547,17.1179591 L17.8000367,17.9404017 C17.9891985,18.0144215 18.2030336,17.9404017 18.3017267,17.7594643 L19.9466119,14.913813 C20.045305,14.7328756 20.0041828,14.5108161 19.8479188,14.3874498 L18.1125649,13.0304195 Z M12.0018166,15.1029748 C10.4145024,15.1029748 9.12326754,13.81174 9.12326754,12.2244258 C9.12326754,10.6371116 10.4145024,9.34587676 12.0018166,9.34587676 C13.5891307,9.34587676 14.8803656,10.6371116 14.8803656,12.2244258 C14.8803656,13.81174 13.5891307,15.1029748 12.0018166,15.1029748 Z" />
     </svg>
   </div>
 );
@@ -183,15 +177,15 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       ${hasAnyHighlight && !isHighlighted && !shouldShake ? 'opacity-20 grayscale-[0.8] scale-100' : 'opacity-100 grayscale-0'}
       overflow-x-hidden overflow-y-visible
     `}>
-      <div className="w-[22%] flex flex-col justify-center overflow-visible">
+      <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
-        <span className="text-[13px] font-bold opacity-60 mt-1 uppercase tracking-[0.3em]">{vehicle.plate}</span>
+        <span className="text-[13px] font-black opacity-60 mt-1 uppercase tracking-[0.3em]">{vehicle.plate}</span>
       </div>
 
       <div className="w-[16%] border-l border-current/10 pl-6 overflow-visible">
-        <p className="text-xl font-bold uppercase tracking-tight leading-[1.2] truncate overflow-visible">{vehicle.client}</p>
+        <p className="text-xl font-black uppercase tracking-tight leading-[1.2] truncate overflow-visible">{vehicle.client}</p>
       </div>
 
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
@@ -213,7 +207,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
                <div className="flex items-center justify-center w-full gap-2">
-                  <TestDriveCarAnimation />
+                  <FaseDeTesteGearAnimation />
                   <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
                </div>
             ) : isFinalizado ? (
@@ -287,13 +281,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         .animate-hood-wiggle { animation: hood-wiggle 2.5s ease-in-out infinite; transform-origin: 80px 16px; }
         @keyframes wiggle { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
         .animate-wiggle { animation: wiggle 0.6s ease-in-out infinite; }
-
-        @keyframes car-test-move { 
-          0% { transform: translateX(-4px); } 
-          50% { transform: translateX(12px); } 
-          100% { transform: translateX(-4px); } 
-        }
-        .animate-car-test-move { animation: car-test-move 2.5s ease-in-out infinite; }
 
         @keyframes clock-hand-fast {
           from { transform: translate(-50%, -50%) rotate(0deg); }
