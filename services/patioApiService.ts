@@ -40,6 +40,7 @@ interface ServiceOrderRow {
   issue_description?: string | null;
   status: string;
   assigned_technician?: string | null;
+  assigned_technician_name?: string | null;
   garantia_tag?: boolean;
   order_type?: 'vehicle' | 'module';
   created_at?: string;
@@ -102,7 +103,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
           stage: mapStatusToStage(row.status),
           deliveryDate,
           rawDueDate: rawDue,
-          mechanic: row.assigned_technician ?? 'Pátio',
+          mechanic: (row.assigned_technician_name || row.assigned_technician || 'Pátio').trim() || 'Pátio',
           lastActivity: formatLastActivity(row.updated_at ?? row.created_at),
         };
       });
