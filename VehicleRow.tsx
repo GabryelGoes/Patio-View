@@ -201,9 +201,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           {!isFinalizado && isAvaliacaoTecnica && <MagnifierAnimation />}
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
-            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2">
-               <div className="absolute left-1/2 bottom-1/2 w-[1.5px] h-[5px] bg-current rounded-full origin-bottom -translate-x-px animate-[spin_6s_linear_infinite]"></div>
-               <div className="absolute left-1/2 bottom-1/2 w-[2px] h-[7px] bg-current rounded-full origin-bottom -translate-x-px animate-[spin_3s_linear_infinite]"></div>
+            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
+                <div className="absolute left-1/2 bottom-0 w-[1.5px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
+              </div>
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
+                <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
+              </div>
             </div>
           )}
           
@@ -286,6 +290,17 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           100% { transform: translateX(-4px); } 
         }
         .animate-car-test-move { animation: car-test-move 2.5s ease-in-out infinite; }
+
+        @keyframes clock-hand-fast {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes clock-hand-slow {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .animate-clock-hand-fast { animation: clock-hand-fast 3s linear infinite; }
+        .animate-clock-hand-slow { animation: clock-hand-slow 6s linear infinite; }
       `}</style>
     </div>
   );
