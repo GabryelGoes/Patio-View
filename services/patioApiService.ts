@@ -113,6 +113,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
           rawDueDate: rawDue,
           mechanic: (row.assigned_technician_name || row.assigned_technician || 'Pátio').trim() || 'Pátio',
           lastActivity: formatLastActivity(row.updated_at ?? row.created_at),
+          garantiaTag: row.garantia_tag === true,
         };
       });
 

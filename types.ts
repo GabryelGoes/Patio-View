@@ -23,6 +23,8 @@ export interface Vehicle {
   rawDueDate?: Date; // Data original para cálculos
   mechanic: string;
   lastActivity: string;
+  /** Etiqueta de garantia (vem da API): persiste em qualquer etapa até remover no modal do sistema principal. Na TV, o aro vermelho só aparece quando garantiaTag é true e o veículo NÃO está na etapa Garantia. */
+  garantiaTag?: boolean;
 }
 
 export interface WorkshopData {
