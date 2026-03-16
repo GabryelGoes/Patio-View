@@ -191,14 +191,18 @@ const App: React.FC = () => {
   }, [isEvaluationAlertActive, data]);
 
   useEffect(() => {
-    if (!data || data.vehicles.length <= CARS_PER_PAGE) { setPage(0); return; }
+    if (!data || data.vehicles.length <= CARS_PER_PAGE) {
+      setPage(0);
+      return;
+    }
     const hasActiveOverlay = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
     if (hasActiveOverlay) return;
-    
+
     const totalPages = Math.ceil(data.vehicles.length / CARS_PER_PAGE);
-    const pageInterval = setInterval(() => setPage((prev) => (prev + 1) % totalPages), 10000);
+    if (totalPages < 1) return;
+    const pageInterval = setInterval(() => setPage((prev) => (prev + 1) % totalPages), 7000);
     return () => clearInterval(pageInterval);
-  }, [data, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
+  }, [data?.vehicles?.length, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
 
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
