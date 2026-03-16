@@ -45,6 +45,8 @@ interface ServiceOrderRow {
   order_type?: 'vehicle' | 'module';
   created_at?: string;
   updated_at?: string;
+  /** Nome do cliente (enriquecido pelo backend na listagem). */
+  customer_name?: string | null;
   customers?: { id: string; name?: string; phone?: string } | null;
 }
 
@@ -110,7 +112,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
     const vehicles: Vehicle[] = rows
       .filter((row) => row.status !== 'CANCELLED')
       .map((row) => {
-        const customerName = firstNameOnly(row.customers?.name);
+        const customerName = firstNameOnly(row.customer_name ?? row.customers?.name);
         const model = row.order_type === 'module'
           ? (row.module_identification || row.vehicle_model || 'Módulo')
           : (row.vehicle_model || row.module_identification || 'Veículo');
