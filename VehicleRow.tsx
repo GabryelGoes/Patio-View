@@ -163,7 +163,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
     <div className={`
       flex items-center w-full h-full rounded-[24px] border px-8 py-3 transition-all duration-1000 relative
       ${colorClass}
-      ${showGarantiaRing ? 'ring-4 ring-red-500 ring-offset-4 ring-offset-black shadow-[0_0_0_4px_rgba(239,68,68,0.95)]' : ''}
+      ${showGarantiaRing ? 'ring-4 ring-red-600 ring-offset-4 ring-offset-black shadow-[0_0_0_5px_rgba(220,38,38,1),0_0_20px_rgba(220,38,38,0.6)]' : ''}
       ${isHighlighted ? 'scale-[1.06] z-50 border-white border-[4px] shadow-[0_0_80px_rgba(255,255,255,0.4)]' : 'z-0 shadow-xl scale-100 border-transparent'}
       ${shouldShake ? 'animate-wiggle border-yellow-400 border-[3px] shadow-[0_0_40px_rgba(250,204,21,0.6)] z-40' : ''}
       ${hasAnyHighlight && !isHighlighted && !shouldShake ? 'opacity-20 grayscale-[0.8] scale-100' : 'opacity-100 grayscale-0'}
