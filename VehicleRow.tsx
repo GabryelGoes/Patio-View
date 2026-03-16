@@ -76,7 +76,7 @@ const MagnifierAnimation: React.FC = () => (
 );
 
 const CarLiftAnimation: React.FC = () => (
-  <div className="relative w-48 h-28 shrink-0 flex items-center justify-center mr-1 overflow-visible">
+  <div className="relative w-48 h-28 shrink-0 flex items-center justify-center mr-1 overflow-visible translate-x-[50%]">
     <svg viewBox="-40 -10 165 70" className="w-full h-full text-white overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="45" y="15" width="4" height="30" rx="1" fill="currentColor" opacity="0.4" />
       <rect x="39" y="45" width="16" height="2" rx="1" fill="currentColor" opacity="0.4" />
