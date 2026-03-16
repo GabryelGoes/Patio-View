@@ -76,7 +76,7 @@ const MagnifierAnimation: React.FC = () => (
 );
 
 const CarLiftAnimation: React.FC = () => (
-  <div className="relative w-48 h-28 shrink-0 flex items-center justify-center mr-2 overflow-visible translate-x-[15%]">
+  <div className="relative w-48 h-28 shrink-0 flex items-center justify-center mr-1 overflow-visible">
     <svg viewBox="-40 -10 165 70" className="w-full h-full text-white overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="45" y="15" width="4" height="30" rx="1" fill="currentColor" opacity="0.4" />
       <rect x="39" y="45" width="16" height="2" rx="1" fill="currentColor" opacity="0.4" />
@@ -183,7 +183,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste ? 'justify-center' : ''}`}>
           {isEmServico ? (
-            <div className="flex items-center justify-center gap-2 w-full -translate-x-[10%]">
+            <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
               <CarLiftAnimation />
               <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
             </div>
