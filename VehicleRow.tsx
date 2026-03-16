@@ -83,7 +83,7 @@ const CarLiftAnimation: React.FC = () => (
       <g className="animate-lift-move-workshop">
         <rect x="27" y="32" width="40" height="2" rx="1" fill="currentColor" />
         <rect x="44" y="30" width="6" height="4" rx="1" fill="currentColor" />
-        <g transform="translate(14, 10) scale(1.27)">
+        <g transform="translate(-1, 0) scale(0.38)">
           <CarOnLiftSvg />
         </g>
       </g>
