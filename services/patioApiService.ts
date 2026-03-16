@@ -57,6 +57,20 @@ function formatDeliveryDate(value: string | null | undefined): string {
   }
 }
 
+/** Interpreta data de entrega (YYYY-MM-DD ou ISO) como data local, sem mudança de fuso. */
+function parseDeliveryDateLocal(value: string | null | undefined): Date | undefined {
+  if (!value || typeof value !== 'string') return undefined;
+  const s = value.trim();
+  const datePart = s.slice(0, 10);
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, y, m, d] = match.map(Number);
+    return new Date(y, m - 1, d); // meia-noite no fuso local
+  }
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 function formatLastActivity(value: string | null | undefined): string {
   if (!value) return '--:--';
   try {
@@ -101,7 +115,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
           ? (row.module_identification || row.vehicle_model || 'Módulo')
           : (row.vehicle_model || row.module_identification || 'Veículo');
         const deliveryDate = formatDeliveryDate(row.delivery_date);
-        const rawDue = row.delivery_date ? new Date(row.delivery_date) : undefined;
+        const rawDue = parseDeliveryDateLocal(row.delivery_date);
 
         return {
           id: row.id,

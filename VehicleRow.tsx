@@ -161,8 +161,10 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const getDeliveryStatus = () => {
     if (isFinalizado) return { label: "PRONTO", highlight: false, isDelayed: false };
     if (!vehicle.rawDueDate) return { label: vehicle.deliveryDate || '---', highlight: false, isDelayed: false };
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const delivery = new Date(vehicle.rawDueDate); delivery.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d = new Date(vehicle.rawDueDate);
+    const delivery = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const diffDays = Math.round((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) return { label: "ATRASADO", highlight: true, isDelayed: true };
     if (diffDays === 0) return { label: "HOJE", highlight: true, isDelayed: false };
