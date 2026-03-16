@@ -145,7 +145,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const refreshInterval = setInterval(loadData, 15000);
+    const refreshInterval = setInterval(loadData, 5000);
     return () => clearInterval(refreshInterval);
   }, [soundEnabled]);
 

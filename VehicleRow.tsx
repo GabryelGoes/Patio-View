@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Vehicle, Stage } from './types.ts';
+import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -74,22 +75,6 @@ const MagnifierAnimation: React.FC = () => (
   </div>
 );
 
-const MercedesC180Profile: React.FC<{ className?: string, openHood?: boolean }> = ({ className, openHood = false }) => (
-  <svg viewBox="0 0 100 45" className={`${className} overflow-visible`} xmlns="http://www.w3.org/2000/svg">
-    <path d="M5,35 L95,35 L95,32 L92,26 C90,20 85,18 78,16 L45,15 C30,15 18,18 10,25 L6,30 Z" fill="currentColor" />
-    <path d="M32,17 L46,17 L46,24 L18,24 C22,20 25,17 32,17 Z" fill="rgba(255,255,255,0.6)" />
-    <path d="M49,17 L74,18 C78,18 82,21 84,24 L49,24 Z" fill="rgba(255,255,255,0.6)" />
-    {openHood && <path d="M80,16 L96,4 C97,3 98,3 98,5 L90,16 Z" fill="currentColor" className="animate-hood-wiggle" />}
-    <g>
-      <circle cx="25" cy="35" r="7" fill="black" />
-      <circle cx="25" cy="35" r="5" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.8" />
-      <circle cx="75" cy="35" r="7" fill="black" />
-      <circle cx="75" cy="35" r="5" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.8" />
-    </g>
-    {!openHood && <rect x="91" y="24" width="3" height="1.5" rx="0.5" fill="#fff" opacity="0.8" />}
-  </svg>
-);
-
 const CarLiftAnimation: React.FC = () => (
   <div className="relative w-24 h-14 shrink-0 flex items-center justify-center mr-2 overflow-visible translate-x-[15%]">
     <svg viewBox="0 0 85 50" className="w-full h-full text-white overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -98,8 +83,8 @@ const CarLiftAnimation: React.FC = () => (
       <g className="animate-lift-move-workshop">
         <rect x="27" y="32" width="40" height="2" rx="1" fill="currentColor" />
         <rect x="44" y="30" width="6" height="4" rx="1" fill="currentColor" />
-        <g transform="translate(19.5, 8.9) scale(0.55)">
-           <MercedesC180Profile className="text-white" openHood={true} />
+        <g transform="translate(30, 14) scale(0.08)">
+          <CarOnLiftSvg />
         </g>
       </g>
     </svg>
