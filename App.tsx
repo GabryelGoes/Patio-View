@@ -202,7 +202,7 @@ const App: React.FC = () => {
   }, [isEvaluationAlertActive, data]);
 
   useEffect(() => {
-    if (!data) {
+    if (!data || data.vehicles.length <= CARS_PER_PAGE) {
       setPage(0);
       return;
     }
@@ -211,13 +211,6 @@ const App: React.FC = () => {
 
     const vehiclePages = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
     const hasNoticePage = (data?.notices?.length || 0) > 0;
-
-    // Se não há página de avisos e só existe uma página de veículos, não faz sentido paginar
-    if (!hasNoticePage && data.vehicles.length <= CARS_PER_PAGE) {
-      setPage(0);
-      return;
-    }
-
     const totalPages = vehiclePages + (hasNoticePage ? 1 : 0);
     if (totalPages < 1) return;
     const pageInterval = setInterval(() => {
