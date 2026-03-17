@@ -19,7 +19,7 @@ const getStageColors = (stage: Stage) => {
 
   if (s.includes('garantia')) return 'bg-red-700 text-white border-red-600';
   if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-zinc-900 text-zinc-500 border-zinc-800';
-  if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao')) return 'bg-amber-400 text-amber-950 border-amber-500';
+  if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao')) return 'bg-amber-500 text-amber-950 border-amber-600';
   if (s.includes('avaliação') || s.includes('aprovação')) return 'bg-yellow-400 text-yellow-950 border-yellow-300';
   
   if (s.includes('serviço')) return 'bg-blue-600 text-white border-blue-500';

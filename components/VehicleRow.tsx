@@ -19,9 +19,9 @@ const getStageColors = (stage: Stage) => {
 
   if (s.includes('garantia')) return 'bg-red-700 text-white border-red-600';
   
-  // Aguardando Aprovação (amarelo alaranjado)
+  // Aguardando Aprovação (amarelo alaranjado, tom mais escuro)
   if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao')) {
-    return 'bg-amber-400 text-amber-950 border-amber-500 shadow-[0_0_15px_rgba(251,191,36,0.4)]';
+    return 'bg-amber-500 text-amber-950 border-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
   }
 
   if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-zinc-900 text-zinc-500 border-zinc-800';
