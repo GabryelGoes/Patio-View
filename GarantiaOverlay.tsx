@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
 
 interface GarantiaOverlayProps {
@@ -38,15 +38,21 @@ const playAlertSound = async (soundEnabled: boolean) => {
 
 const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, soundEnabled }) => {
   const [isExiting, setIsExiting] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     playAlertSound(soundEnabled);
+    let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
-      setTimeout(onComplete, 1000); 
-    }, 7000); 
-    return () => clearTimeout(timer);
-  }, [onComplete, soundEnabled]);
+      completeTimer = setTimeout(() => onCompleteRef.current(), 1000);
+    }, 7000);
+    return () => {
+      clearTimeout(timer);
+      if (completeTimer !== null) clearTimeout(completeTimer);
+    };
+  }, [soundEnabled]);
 
   return (
     <div className={`fixed inset-0 z-[250] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>
