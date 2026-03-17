@@ -171,10 +171,10 @@ const App: React.FC = () => {
       }
     };
 
-    const alertInterval = setInterval(triggerAlert, 15 * 60 * 1000);
+    const alertInterval = setInterval(triggerAlert, 30 * 60 * 1000);
     const checkSync = setInterval(() => {
       const now = new Date();
-      if (now.getMinutes() % 15 === 0 && now.getSeconds() === 0) triggerAlert();
+      if (now.getMinutes() % 30 === 0 && now.getSeconds() === 0) triggerAlert();
     }, 1000);
     return () => { clearInterval(alertInterval); clearInterval(checkSync); };
   }, [data]);
