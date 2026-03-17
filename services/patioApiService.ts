@@ -1,8 +1,9 @@
 /**
- * Serviço que consome a API do sistema principal para o painel do pátio (ordens de serviço).
+ * Serviço que consome a API do sistema principal para o painel do pátio (ordens de serviço),
+ * quadro de avisos e meta semanal.
  */
 
-import { WorkshopData, Vehicle, Stage } from '../types';
+import { WorkshopData, WorkshopAndNotices, Vehicle, Stage, Notice, WeeklyGoal } from '../types';
 
 const getEnv = (key: string): string =>
   (import.meta as any).env?.[key] ?? '';
@@ -140,5 +141,54 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
   } catch (err) {
     console.error('Erro ao buscar dados do pátio:', err);
     return { boardName: 'Erro de Conexão', vehicles: [] };
+  }
+}
+
+export async function fetchWorkshopAndNotices(): Promise<WorkshopAndNotices> {
+  const base = await fetchWorkshopData();
+
+  if (!API_BASE) {
+    return { ...base, notices: [], weeklyGoal: null };
+  }
+
+  try {
+    const [noticesRes, goalRes] = await Promise.all([
+      fetch(`${API_BASE}/notices`),
+      fetch(`${API_BASE}/weekly-goal`),
+    ]);
+
+    let notices: Notice[] = [];
+    if (noticesRes.ok) {
+      const raw = await noticesRes.json();
+      notices = (Array.isArray(raw) ? raw : []).map((n: any) => ({
+        id: String(n.id),
+        title: n.title ?? '',
+        body: n.body ?? '',
+        highlight: !!n.highlight,
+        active: n.active !== false,
+        sortOrder: typeof n.sortOrder === 'number' ? n.sortOrder : null,
+        createdAt: n.createdAt ?? n.created_at ?? '',
+        updatedAt: n.updatedAt ?? n.updated_at ?? '',
+      }));
+    }
+
+    let weeklyGoal: WeeklyGoal | null = null;
+    if (goalRes.status !== 404 && goalRes.ok) {
+      const g = await goalRes.json();
+      weeklyGoal = {
+        weekStart: g.weekStart ?? g.week_start ?? '',
+        targetAmount: Number(g.targetAmount ?? g.target_amount ?? 0),
+        currentAmount: Number(g.currentAmount ?? g.current_amount ?? 0),
+      };
+    }
+
+    return {
+      ...base,
+      notices: notices.filter((n) => n.active),
+      weeklyGoal,
+    };
+  } catch (err) {
+    console.error('Erro ao buscar avisos/meta semanal para TV:', err);
+    return { ...base, notices: [], weeklyGoal: null };
   }
 }

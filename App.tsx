@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { WorkshopData, Stage, Vehicle } from './types.ts';
-import { fetchWorkshopData } from './services/patioApiService.ts';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { WorkshopAndNotices, Stage, Vehicle } from './types.ts';
+import { fetchWorkshopAndNotices } from './services/patioApiService.ts';
 import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
@@ -53,7 +53,7 @@ const playNotificationSound = async (soundEnabled: boolean, repeat = 1) => {
 };
 
 const App: React.FC = () => {
-  const [data, setData] = useState<WorkshopData | null>(null);
+  const [data, setData] = useState<WorkshopAndNotices | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -82,10 +82,21 @@ const App: React.FC = () => {
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
   const previousVehiclesRef = useRef<Record<string, string>>({});
   const CARS_PER_PAGE = 6;
+  const [noticeIndex, setNoticeIndex] = useState(0);
+
+  const currency = useMemo(
+    () =>
+      new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
 
   const loadData = async () => {
     try {
-      const result = await fetchWorkshopData();
+      const result = await fetchWorkshopAndNotices();
       const sortedVehicles = result.vehicles
         .filter(v => STAGE_PRIORITY[v.stage] !== undefined)
         .sort((a, b) => (STAGE_PRIORITY[a.stage] || 99) - (STAGE_PRIORITY[b.stage] || 99));
@@ -198,17 +209,34 @@ const App: React.FC = () => {
     const hasActiveOverlay = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
     if (hasActiveOverlay) return;
 
-    const totalPages = Math.ceil(data.vehicles.length / CARS_PER_PAGE);
+    const vehiclePages = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
+    const hasNoticePage = (data?.notices?.length || 0) > 0;
+    const totalPages = vehiclePages + (hasNoticePage ? 1 : 0);
     if (totalPages < 1) return;
     const pageInterval = setInterval(() => setPage((prev) => (prev + 1) % totalPages), 7000);
     return () => clearInterval(pageInterval);
-  }, [data?.vehicles?.length, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
+  }, [data?.vehicles?.length, data?.notices?.length, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
+
+  // Rotação automática dos avisos (independente da paginação de carros)
+  useEffect(() => {
+    if (!data || !data.notices || data.notices.length <= 1) {
+      setNoticeIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setNoticeIndex((prev) => (prev + 1) % data.notices.length);
+    }, 12000);
+    return () => clearInterval(id);
+  }, [data?.notices?.length]);
 
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
   const startIndex = page * CARS_PER_PAGE;
   const visibleVehicles = data?.vehicles.slice(startIndex, startIndex + CARS_PER_PAGE) || [];
-  const totalPagesCount = Math.ceil((data?.vehicles.length || 0) / CARS_PER_PAGE) || 1;
+  const vehiclePages = Math.max(1, Math.ceil((data?.vehicles.length || 0) / CARS_PER_PAGE));
+  const hasNoticePage = (data?.notices?.length || 0) > 0;
+  const totalPagesCount = vehiclePages + (hasNoticePage ? 1 : 0);
+  const isNoticePage = hasNoticePage && page === vehiclePages;
   const hasAnyHighlight = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
 
   return (
@@ -277,27 +305,105 @@ const App: React.FC = () => {
       </header>
 
       <div className={`flex w-full px-12 mb-2 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
-        <div className="w-[22%]">Modelo / Placa</div>
-        <div className="w-[16%] pl-6">Cliente</div>
-        <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
-        <div className="w-[14%] pl-6 text-center">Entrega</div>
-        <div className="w-[14%] pl-6">Mecânico</div>
+        {!isNoticePage ? (
+          <>
+            <div className="w-[22%]">Modelo / Placa</div>
+            <div className="w-[16%] pl-6">Cliente</div>
+            <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
+            <div className="w-[14%] pl-6 text-center">Entrega</div>
+            <div className="w-[14%] pl-6">Mecânico</div>
+          </>
+        ) : (
+          <div className="w-full text-center">QUADRO DE AVISOS</div>
+        )}
       </div>
 
-      <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">
-        {visibleVehicles.map(v => (
-          <VehicleRow 
-            key={v.id} 
-            vehicle={v} 
-            isHighlighted={v.id === activeHighlightId} 
-            hasAnyHighlight={hasAnyHighlight} 
-            isAlerting={isEvaluationAlertActive} 
-          />
-        ))}
-        {Array.from({ length: CARS_PER_PAGE - visibleVehicles.length }).map((_, i) => (
-          <div key={i} className="h-full border-2 border-dashed border-white/5 bg-white/[0.02] rounded-[24px] flex items-center justify-center text-white/10 font-black text-2xl uppercase italic">Box Livre</div>
-        ))}
-      </main>
+      {!isNoticePage ? (
+        <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">
+          {visibleVehicles.map(v => (
+            <VehicleRow 
+              key={v.id} 
+              vehicle={v} 
+              isHighlighted={v.id === activeHighlightId} 
+              hasAnyHighlight={hasAnyHighlight} 
+              isAlerting={isEvaluationAlertActive} 
+            />
+          ))}
+          {Array.from({ length: CARS_PER_PAGE - visibleVehicles.length }).map((_, i) => (
+            <div key={i} className="h-full border-2 border-dashed border-white/5 bg-white/[0.02] rounded-[24px] flex items-center justify-center text-white/10 font-black text-2xl uppercase italic">Box Livre</div>
+          ))}
+        </main>
+      ) : (
+        <main className="flex-1 flex items-center justify-center min-h-0 px-10">
+          <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-center">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-8 shadow-[0_24px_90px_rgba(0,0,0,0.6)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-yellow-500/70 mb-3">
+                TV do pátio
+              </p>
+              <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-white mb-4">
+                {data?.notices?.[noticeIndex]?.title || 'Nenhum aviso cadastrado'}
+              </h2>
+              <p className="text-lg lg:text-xl text-zinc-300 leading-relaxed">
+                {data?.notices?.[noticeIndex]?.body || 'Crie avisos no sistema principal para exibir aqui na TV do pátio.'}
+              </p>
+              <div className="mt-6 flex items-center justify-between text-[12px] text-zinc-500 tracking-[0.2em] uppercase font-black">
+                <span>{(data?.notices?.length || 0) > 0 ? `Aviso ${noticeIndex + 1} de ${data?.notices?.length}` : '—'}</span>
+                <span className="text-zinc-600">Meta semanal ao lado</span>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-emerald-400/30 bg-gradient-to-br from-emerald-500/10 via-zinc-950 to-zinc-950 p-7 shadow-[0_24px_90px_rgba(0,0,0,0.6)]">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-emerald-300/80 mb-3">
+                Meta semanal
+              </p>
+              <div className="flex items-end justify-between gap-4 mb-5">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Faturado</p>
+                  <p className="text-2xl font-black text-white">
+                    {currency.format(data?.weeklyGoal?.currentAmount || 0)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Meta</p>
+                  <p className="text-2xl font-black text-white">
+                    {data?.weeklyGoal?.targetAmount ? currency.format(data.weeklyGoal.targetAmount) : 'Definir no app'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-3 rounded-full bg-white/5 overflow-hidden border border-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
+                  style={{
+                    width: (() => {
+                      const g = data?.weeklyGoal;
+                      if (!g || !g.targetAmount || g.targetAmount <= 0) return '0%';
+                      const pct = Math.min(130, Math.max(0, (g.currentAmount / g.targetAmount) * 100));
+                      return `${pct}%`;
+                    })(),
+                  }}
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
+                <span>
+                  {data?.weeklyGoal?.weekStart
+                    ? `Semana de ${new Date(data.weeklyGoal.weekStart + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+                    : 'Semana atual'}
+                </span>
+                <span>
+                  {(() => {
+                    const g = data?.weeklyGoal;
+                    if (!g || !g.targetAmount || g.targetAmount <= 0) return '0%';
+                    const pct = Math.min(130, Math.max(0, (g.currentAmount / g.targetAmount) * 100));
+                    return `${pct.toFixed(0)}%`;
+                  })()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
     </div>
   );
 };

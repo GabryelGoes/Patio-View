@@ -31,3 +31,29 @@ export interface WorkshopData {
   boardName: string;
   vehicles: Vehicle[];
 }
+
+// ---------- Quadro de avisos (TV) ----------
+
+export interface Notice {
+  id: string;
+  title: string;
+  body: string;
+  highlight: boolean;
+  active: boolean;
+  sortOrder: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeeklyGoal {
+  weekStart: string;
+  targetAmount: number;
+  currentAmount: number;
+}
+
+export interface WorkshopAndNotices {
+  boardName: string;
+  vehicles: Vehicle[];
+  notices: Notice[];
+  weeklyGoal: WeeklyGoal | null;
+}
