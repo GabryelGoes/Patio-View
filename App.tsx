@@ -238,6 +238,13 @@ const App: React.FC = () => {
   const totalPagesCount = vehiclePages + (hasNoticePage ? 1 : 0);
   const isNoticePage = hasNoticePage && page === vehiclePages;
   const hasAnyHighlight = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
+  const weeklyPercent = useMemo(() => {
+    const g = data?.weeklyGoal;
+    if (!g || !g.targetAmount || g.targetAmount <= 0) return 0;
+    const pct = (g.currentAmount / g.targetAmount) * 100;
+    if (!Number.isFinite(pct)) return 0;
+    return Math.max(0, Math.min(130, pct));
+  }, [data?.weeklyGoal]);
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
@@ -268,7 +275,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <header className="grid grid-cols-3 items-end mb-4 px-4 h-14">
+      <header className="grid grid-cols-3 items-end mb-2 px-4 h-14">
         <h1 className="font-black italic text-3xl">
           <span className="text-yellow-400">REI DO ABS</span>
           <span className="text-white/20 ml-3 text-2xl uppercase">PÁTIO</span>
@@ -303,6 +310,22 @@ const App: React.FC = () => {
           <Clock />
         </div>
       </header>
+
+      {/* Barra de progresso da Meta Semanal no cabeçalho */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500 mb-1">
+          <span>Meta semanal</span>
+          <span>
+            {weeklyPercent.toFixed(0)}%
+          </span>
+        </div>
+        <div className="h-2.5 rounded-full bg-white/5 overflow-hidden border border-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
+            style={{ width: `${weeklyPercent}%` }}
+          />
+        </div>
+      </div>
 
       <div className={`flex w-full px-12 mb-2 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
         {!isNoticePage ? (
@@ -352,55 +375,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-emerald-400/30 bg-gradient-to-br from-emerald-500/10 via-zinc-950 to-zinc-950 p-7 shadow-[0_24px_90px_rgba(0,0,0,0.6)]">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-emerald-300/80 mb-3">
-                Meta semanal
-              </p>
-              <div className="flex items-end justify-between gap-4 mb-5">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Faturado</p>
-                  <p className="text-2xl font-black text-white">
-                    {currency.format(data?.weeklyGoal?.currentAmount || 0)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Meta</p>
-                  <p className="text-2xl font-black text-white">
-                    {data?.weeklyGoal?.targetAmount ? currency.format(data.weeklyGoal.targetAmount) : 'Definir no app'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-3 rounded-full bg-white/5 overflow-hidden border border-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
-                  style={{
-                    width: (() => {
-                      const g = data?.weeklyGoal;
-                      if (!g || !g.targetAmount || g.targetAmount <= 0) return '0%';
-                      const pct = Math.min(130, Math.max(0, (g.currentAmount / g.targetAmount) * 100));
-                      return `${pct}%`;
-                    })(),
-                  }}
-                />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
-                <span>
-                  {data?.weeklyGoal?.weekStart
-                    ? `Semana de ${new Date(data.weeklyGoal.weekStart + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
-                    : 'Semana atual'}
-                </span>
-                <span>
-                  {(() => {
-                    const g = data?.weeklyGoal;
-                    if (!g || !g.targetAmount || g.targetAmount <= 0) return '0%';
-                    const pct = Math.min(130, Math.max(0, (g.currentAmount / g.targetAmount) * 100));
-                    return `${pct.toFixed(0)}%`;
-                  })()}
-                </span>
-              </div>
-            </div>
+            {/* Espaço vazio ao lado do aviso; meta semanal já aparece como barra no cabeçalho */}
+            <div />
           </div>
         </main>
       )}
