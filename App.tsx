@@ -213,18 +213,21 @@ const App: React.FC = () => {
     const hasNoticePage = (data?.notices?.length || 0) > 0;
     const totalPages = vehiclePages + (hasNoticePage ? 1 : 0);
     if (totalPages < 1) return;
-    const pageInterval = setInterval(() => {
-      setPage((prev) => {
-        const next = (prev + 1) % totalPages;
-        const hasNotices = (data?.notices?.length || 0) > 0;
-        if (hasNotices && next === vehiclePages) {
-          setNoticeIndex((current) => (current + 1) % (data!.notices!.length));
-        }
-        return next;
-      });
-    }, 7000);
+    const pageInterval = setInterval(() => setPage((prev) => (prev + 1) % totalPages), 7000);
     return () => clearInterval(pageInterval);
   }, [data?.vehicles?.length, data?.notices?.length, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
+
+  // Rotação automática dos avisos (independente da paginação de carros)
+  useEffect(() => {
+    if (!data || !data.notices || data.notices.length <= 1) {
+      setNoticeIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setNoticeIndex((prev) => (prev + 1) % data.notices.length);
+    }, 12000);
+    return () => clearInterval(id);
+  }, [data?.notices?.length]);
 
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
