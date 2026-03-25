@@ -27,7 +27,30 @@ export interface Vehicle {
   garantiaTag?: boolean;
 }
 
+export type TvSlideType = 'notice' | 'image' | 'video' | 'goal' | 'alert';
+
+export interface TvSlide {
+  id: string;
+  slideType: TvSlideType;
+  title: string;
+  body: string;
+  mediaUrl: string | null;
+  durationSeconds: number;
+  sortOrder: number;
+  goalCurrent: number | null;
+  goalTarget: number | null;
+  goalLabel: string | null;
+}
+
+export interface TvWeeklyGoal {
+  label: string;
+  currentAmount: number;
+  targetAmount: number;
+}
+
 export interface WorkshopData {
   boardName: string;
   vehicles: Vehicle[];
+  tvSlides: TvSlide[];
+  weeklyGoal: TvWeeklyGoal | null;
 }

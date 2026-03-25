@@ -6,6 +6,7 @@ import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
+import TvSlidePage from './components/TvSlidePage.tsx';
 
 const STAGE_PRIORITY: Record<string, number> = {
   'Garantia': 1,
@@ -190,25 +191,65 @@ const App: React.FC = () => {
     }
   }, [isEvaluationAlertActive, data]);
 
+  const vehiclePages = Math.max(1, Math.ceil((data?.vehicles.length || 0) / CARS_PER_PAGE));
+  const slideCount = data?.tvSlides?.length ?? 0;
+  const totalPages = vehiclePages + slideCount;
+
   useEffect(() => {
-    if (!data || data.vehicles.length <= CARS_PER_PAGE) {
-      setPage(0);
-      return;
-    }
+    if (!data) return;
+    const tp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE)) + (data.tvSlides?.length ?? 0);
+    if (page >= tp) setPage(0);
+  }, [data?.vehicles?.length, data?.tvSlides?.length, page, data]);
+
+  useEffect(() => {
+    if (!data) return;
     const hasActiveOverlay = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
     if (hasActiveOverlay) return;
 
-    const totalPages = Math.ceil(data.vehicles.length / CARS_PER_PAGE);
-    if (totalPages < 1) return;
-    const pageInterval = setInterval(() => setPage((prev) => (prev + 1) % totalPages), 7000);
-    return () => clearInterval(pageInterval);
-  }, [data?.vehicles?.length, celebrationQueue.length, garantiaQueue.length, activeHighlightId, isEvaluationAlertActive]);
+    const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
+    const sc = data.tvSlides?.length ?? 0;
+    const total = vp + sc;
+    if (total <= 1) return;
+
+    let ms = 7000;
+    if (page >= vp && page < vp + sc && data.tvSlides) {
+      const slide = data.tvSlides[page - vp];
+      ms = Math.min(120000, Math.max(5000, (slide.durationSeconds || 10) * 1000));
+    }
+
+    const id = setTimeout(() => {
+      setPage((prev) => (prev + 1) % total);
+    }, ms);
+    return () => clearTimeout(id);
+  }, [
+    page,
+    data?.vehicles?.length,
+    data?.tvSlides,
+    celebrationQueue.length,
+    garantiaQueue.length,
+    activeHighlightId,
+    isEvaluationAlertActive,
+  ]);
+
+  const weeklyPercent =
+    data?.weeklyGoal &&
+    data.weeklyGoal.targetAmount > 0 &&
+    Number.isFinite(data.weeklyGoal.currentAmount / data.weeklyGoal.targetAmount)
+      ? Math.max(
+          0,
+          Math.min(130, (data.weeklyGoal.currentAmount / data.weeklyGoal.targetAmount) * 100)
+        )
+      : 0;
 
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
   const startIndex = page * CARS_PER_PAGE;
-  const visibleVehicles = data?.vehicles.slice(startIndex, startIndex + CARS_PER_PAGE) || [];
-  const totalPagesCount = Math.ceil((data?.vehicles.length || 0) / CARS_PER_PAGE) || 1;
+  const isSlidePage = slideCount > 0 && page >= vehiclePages;
+  const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
+  const visibleVehicles = !isSlidePage && data
+    ? data.vehicles.slice(startIndex, startIndex + CARS_PER_PAGE)
+    : [];
+  const totalPagesCount = Math.max(1, totalPages);
   const hasAnyHighlight = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
 
   return (
@@ -252,7 +293,9 @@ const App: React.FC = () => {
           <p className="text-[11px] font-bold text-zinc-500 tracking-[0.25em] uppercase leading-none">
             {isEvaluationAlertActive 
               ? <span className="text-yellow-400 animate-pulse">ALERTA: AVALIAÇÃO PENDENTE</span> 
-              : `PÁGINA ${page + 1} - ${totalPagesCount}`}
+              : isSlidePage
+                ? <span className="text-emerald-400/90">TV — CONTEÚDO</span>
+                : `PÁGINA ${page + 1} - ${totalPagesCount}`}
           </p>
         </div>
         <div className="flex justify-end items-center gap-4">
@@ -276,28 +319,59 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {data?.weeklyGoal && data.weeklyGoal.targetAmount > 0 && (
+        <div className="px-5 mb-3 space-y-1">
+          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
+            <span>{data.weeklyGoal.label}</span>
+            <span className="text-yellow-500/90">
+              {data.weeklyGoal.currentAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+              {' / '}
+              {data.weeklyGoal.targetAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+            </span>
+          </div>
+          <div className="h-2.5 rounded-full bg-white/5 overflow-hidden border border-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
+              style={{ width: `${weeklyPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className={`flex w-full px-12 mb-2 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
-        <div className="w-[22%]">Modelo / Placa</div>
-        <div className="w-[16%] pl-6">Cliente</div>
-        <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
-        <div className="w-[14%] pl-6 text-center">Entrega</div>
-        <div className="w-[14%] pl-6">Mecânico</div>
+        {isSlidePage ? (
+          <div className="w-full text-center">Conteúdo da TV</div>
+        ) : (
+          <>
+            <div className="w-[22%]">Modelo / Placa</div>
+            <div className="w-[16%] pl-6">Cliente</div>
+            <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
+            <div className="w-[14%] pl-6 text-center">Entrega</div>
+            <div className="w-[14%] pl-6">Mecânico</div>
+          </>
+        )}
       </div>
 
-      <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">
-        {visibleVehicles.map(v => (
-          <VehicleRow 
-            key={v.id} 
-            vehicle={v} 
-            isHighlighted={v.id === activeHighlightId} 
-            hasAnyHighlight={hasAnyHighlight} 
-            isAlerting={isEvaluationAlertActive} 
-          />
-        ))}
-        {Array.from({ length: CARS_PER_PAGE - visibleVehicles.length }).map((_, i) => (
-          <div key={i} className="h-full border-2 border-dashed border-white/5 bg-white/[0.02] rounded-[24px] flex items-center justify-center text-white/10 font-black text-2xl uppercase italic">Box Livre</div>
-        ))}
-      </main>
+      {isSlidePage && currentSlide ? (
+        <main className="flex-1 flex flex-col min-h-0">
+          <TvSlidePage slide={currentSlide} />
+        </main>
+      ) : (
+        <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">
+          {visibleVehicles.map(v => (
+            <VehicleRow 
+              key={v.id} 
+              vehicle={v} 
+              isHighlighted={v.id === activeHighlightId} 
+              hasAnyHighlight={hasAnyHighlight} 
+              isAlerting={isEvaluationAlertActive} 
+            />
+          ))}
+          {Array.from({ length: CARS_PER_PAGE - visibleVehicles.length }).map((_, i) => (
+            <div key={i} className="h-full border-2 border-dashed border-white/5 bg-white/[0.02] rounded-[24px] flex items-center justify-center text-white/10 font-black text-2xl uppercase italic">Box Livre</div>
+          ))}
+        </main>
+      )}
     </div>
   );
 };

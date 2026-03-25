@@ -2,7 +2,7 @@
  * Serviço que consome a API do sistema principal para o painel do pátio (ordens de serviço).
  */
 
-import { WorkshopData, Vehicle, Stage } from '../types';
+import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal } from '../types';
 
 const getEnv = (key: string): string =>
   (import.meta as any).env?.[key] ?? '';
@@ -90,22 +90,53 @@ function firstNameOnly(fullName: string | null | undefined): string {
   return first || 'Cliente';
 }
 
+async function fetchTvPlaylist(): Promise<{ tvSlides: TvSlide[]; weeklyGoal: TvWeeklyGoal | null }> {
+  if (!API_BASE) return { tvSlides: [], weeklyGoal: null };
+  try {
+    const res = await fetch(`${API_BASE}/tv/playlist`);
+    if (!res.ok) return { tvSlides: [], weeklyGoal: null };
+    const data = await res.json();
+    const slides = Array.isArray(data.slides)
+      ? (data.slides as TvSlide[])
+      : [];
+    const weeklyGoal =
+      data.weeklyGoal &&
+      typeof data.weeklyGoal === 'object' &&
+      data.weeklyGoal !== null
+        ? (data.weeklyGoal as TvWeeklyGoal)
+        : null;
+    return { tvSlides: slides, weeklyGoal };
+  } catch {
+    return { tvSlides: [], weeklyGoal: null };
+  }
+}
+
 export async function fetchWorkshopData(): Promise<WorkshopData> {
   if (!API_BASE) {
     console.warn('VITE_API_BASE não configurada.');
-    return { boardName: 'Configurar VITE_API_BASE no ambiente', vehicles: [] };
+    return {
+      boardName: 'Configurar VITE_API_BASE no ambiente',
+      vehicles: [],
+      tvSlides: [],
+      weeklyGoal: null,
+    };
   }
 
   try {
     const params = new URLSearchParams();
     params.set('orderType', 'vehicle'); // só veículos no pátio
     const url = `${API_BASE}/service-orders?${params.toString()}`;
-    const res = await fetch(url);
+    const [res, tvBundle] = await Promise.all([fetch(url), fetchTvPlaylist()]);
 
     if (!res.ok) {
       const text = await res.text();
       console.error('API service-orders error:', res.status, text);
-      return { boardName: 'Erro de Conexão', vehicles: [] };
+      return {
+        boardName: 'Erro de Conexão',
+        vehicles: [],
+        tvSlides: tvBundle.tvSlides,
+        weeklyGoal: tvBundle.weeklyGoal,
+      };
     }
 
     const rows: ServiceOrderRow[] = await res.json();
@@ -136,9 +167,11 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
     return {
       boardName: 'Rei do ABS • Gestão de Pátio',
       vehicles,
+      tvSlides: tvBundle.tvSlides,
+      weeklyGoal: tvBundle.weeklyGoal,
     };
   } catch (err) {
     console.error('Erro ao buscar dados do pátio:', err);
-    return { boardName: 'Erro de Conexão', vehicles: [] };
+    return { boardName: 'Erro de Conexão', vehicles: [], tvSlides: [], weeklyGoal: null };
   }
 }
