@@ -199,7 +199,7 @@ const App: React.FC = () => {
     if (!data) return;
     const tp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE)) + (data.tvSlides?.length ?? 0);
     if (page >= tp) setPage(0);
-  }, [data?.vehicles?.length, data?.tvSlides?.length, page, data]);
+  }, [page, data?.vehicles?.length, data?.tvSlides?.length]);
 
   useEffect(() => {
     if (!data) return;
@@ -224,7 +224,7 @@ const App: React.FC = () => {
   }, [
     page,
     data?.vehicles?.length,
-    data?.tvSlides,
+    data?.tvSlides?.length,
     celebrationQueue.length,
     garantiaQueue.length,
     activeHighlightId,
