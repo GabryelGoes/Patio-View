@@ -231,6 +231,23 @@ const App: React.FC = () => {
     isEvaluationAlertActive,
   ]);
 
+  const isSlidePage = slideCount > 0 && page >= vehiclePages;
+  const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
+
+  const lastSlideSoundIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isSlidePage) {
+      lastSlideSoundIdRef.current = null;
+      return;
+    }
+    if (!currentSlide || !data?.tvPreferences?.slidesSoundEnabled || !soundEnabled) return;
+    const t = currentSlide.slideType;
+    if (!['notice', 'alert', 'image', 'goal'].includes(t)) return;
+    if (lastSlideSoundIdRef.current === currentSlide.id) return;
+    lastSlideSoundIdRef.current = currentSlide.id;
+    void playNotificationSound(true, 1);
+  }, [isSlidePage, currentSlide, data?.tvPreferences?.slidesSoundEnabled, soundEnabled]);
+
   const weeklyPercent =
     data?.weeklyGoal &&
     data.weeklyGoal.targetAmount > 0 &&
@@ -244,8 +261,7 @@ const App: React.FC = () => {
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
   const startIndex = page * CARS_PER_PAGE;
-  const isSlidePage = slideCount > 0 && page >= vehiclePages;
-  const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
+
   const visibleVehicles = !isSlidePage && data
     ? data.vehicles.slice(startIndex, startIndex + CARS_PER_PAGE)
     : [];
@@ -353,7 +369,10 @@ const App: React.FC = () => {
 
       {isSlidePage && currentSlide ? (
         <main className="flex-1 flex flex-col min-h-0">
-          <TvSlidePage slide={currentSlide} />
+          <TvSlidePage
+            slide={currentSlide}
+            goalSlideShowValues={data?.tvPreferences?.goalSlideShowValues === true}
+          />
         </main>
       ) : (
         <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">

@@ -2,7 +2,7 @@
  * Serviço que consome a API do sistema principal para o painel do pátio (ordens de serviço).
  */
 
-import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal } from '../types';
+import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal, TvPreferences } from '../types';
 
 const getEnv = (key: string): string =>
   (import.meta as any).env?.[key] ?? '';
@@ -90,11 +90,20 @@ function firstNameOnly(fullName: string | null | undefined): string {
   return first || 'Cliente';
 }
 
-async function fetchTvPlaylist(): Promise<{ tvSlides: TvSlide[]; weeklyGoal: TvWeeklyGoal | null }> {
-  if (!API_BASE) return { tvSlides: [], weeklyGoal: null };
+const defaultTvPreferences = (): TvPreferences => ({
+  slidesSoundEnabled: false,
+  goalSlideShowValues: false,
+});
+
+async function fetchTvPlaylist(): Promise<{
+  tvSlides: TvSlide[];
+  weeklyGoal: TvWeeklyGoal | null;
+  tvPreferences: TvPreferences;
+}> {
+  if (!API_BASE) return { tvSlides: [], weeklyGoal: null, tvPreferences: defaultTvPreferences() };
   try {
     const res = await fetch(`${API_BASE}/tv/playlist`);
-    if (!res.ok) return { tvSlides: [], weeklyGoal: null };
+    if (!res.ok) return { tvSlides: [], weeklyGoal: null, tvPreferences: defaultTvPreferences() };
     const data = await res.json();
     const slides = Array.isArray(data.slides)
       ? (data.slides as TvSlide[])
@@ -108,9 +117,14 @@ async function fetchTvPlaylist(): Promise<{ tvSlides: TvSlide[]; weeklyGoal: TvW
             showWeeklyBar: (data.weeklyGoal as { showWeeklyBar?: boolean }).showWeeklyBar !== false,
           } as TvWeeklyGoal)
         : null;
-    return { tvSlides: slides, weeklyGoal };
+    const tp = data.tvPreferences && typeof data.tvPreferences === 'object' ? data.tvPreferences : {};
+    const tvPreferences: TvPreferences = {
+      slidesSoundEnabled: (tp as { slidesSoundEnabled?: boolean }).slidesSoundEnabled === true,
+      goalSlideShowValues: (tp as { goalSlideShowValues?: boolean }).goalSlideShowValues === true,
+    };
+    return { tvSlides: slides, weeklyGoal, tvPreferences };
   } catch {
-    return { tvSlides: [], weeklyGoal: null };
+    return { tvSlides: [], weeklyGoal: null, tvPreferences: defaultTvPreferences() };
   }
 }
 
@@ -122,6 +136,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles: [],
       tvSlides: [],
       weeklyGoal: null,
+      tvPreferences: defaultTvPreferences(),
     };
   }
 
@@ -139,6 +154,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         vehicles: [],
         tvSlides: tvBundle.tvSlides,
         weeklyGoal: tvBundle.weeklyGoal,
+        tvPreferences: tvBundle.tvPreferences,
       };
     }
 
@@ -172,9 +188,16 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles,
       tvSlides: tvBundle.tvSlides,
       weeklyGoal: tvBundle.weeklyGoal,
+      tvPreferences: tvBundle.tvPreferences,
     };
   } catch (err) {
     console.error('Erro ao buscar dados do pátio:', err);
-    return { boardName: 'Erro de Conexão', vehicles: [], tvSlides: [], weeklyGoal: null };
+    return {
+      boardName: 'Erro de Conexão',
+      vehicles: [],
+      tvSlides: [],
+      weeklyGoal: null,
+      tvPreferences: defaultTvPreferences(),
+    };
   }
 }

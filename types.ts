@@ -50,9 +50,15 @@ export interface TvWeeklyGoal {
   showWeeklyBar?: boolean;
 }
 
+export interface TvPreferences {
+  slidesSoundEnabled: boolean;
+  goalSlideShowValues: boolean;
+}
+
 export interface WorkshopData {
   boardName: string;
   vehicles: Vehicle[];
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  tvPreferences: TvPreferences;
 }

@@ -4,6 +4,16 @@ import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
   slide: TvSlide;
+  /** Slide tipo meta: true = atual/meta em R$, false = só %. */
+  goalSlideShowValues?: boolean;
+}
+
+function formatMoney(n: number): string {
+  try {
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  } catch {
+    return String(n);
+  }
 }
 
 /** Extrai o ID de qualquer URL comum do YouTube. */
@@ -20,7 +30,7 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
+const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, goalSlideShowValues = false }) => {
   const t = slide.slideType;
 
   if (t === 'image' && slide.mediaUrl) {
@@ -81,7 +91,15 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
           {slide.goalLabel || slide.title || 'Meta'}
         </h2>
         <div className="w-full max-w-3xl space-y-4">
-          <p className="text-center text-5xl md:text-7xl font-black tabular-nums text-yellow-400">{Math.round(pct)}%</p>
+          {goalSlideShowValues ? (
+            <div className="flex justify-between text-yellow-400 font-black text-2xl md:text-4xl gap-4">
+              <span className="min-w-0 truncate">{formatMoney(cur)}</span>
+              <span className="text-white/40 shrink-0">/</span>
+              <span className="min-w-0 truncate text-right">{formatMoney(tgt)}</span>
+            </div>
+          ) : (
+            <p className="text-center text-5xl md:text-7xl font-black tabular-nums text-yellow-400">{Math.round(pct)}%</p>
+          )}
           <div className="h-6 rounded-full bg-white/10 overflow-hidden border border-white/20">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-orange-500 transition-all duration-700"
