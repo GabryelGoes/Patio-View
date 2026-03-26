@@ -5,6 +5,37 @@ interface TvSlidePageProps {
   slide: TvSlide;
 }
 
+/** Extrai o ID de qualquer URL comum do YouTube. */
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  try {
+    const u = new URL(url);
+    const v = u.searchParams.get('v');
+    if (v && /^[\w-]{11}$/.test(v)) return v;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/** Embed “chromeless”: autoplay com som, sem barra de controles do YouTube (limitações do player podem ainda mostrar toque em alguns dispositivos). */
+function buildYoutubeEmbedUrl(videoId: string): string {
+  const q = new URLSearchParams({
+    autoplay: '1',
+    mute: '0',
+    controls: '0',
+    modestbranding: '1',
+    rel: '0',
+    playsinline: '1',
+    disablekb: '1',
+    fs: '0',
+    iv_load_policy: '3',
+    cc_load_policy: '0',
+  });
+  return `https://www.youtube.com/embed/${videoId}?${q.toString()}`;
+}
+
 function formatMoney(n: number): string {
   try {
     return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -31,31 +62,41 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
   if (t === 'video' && slide.mediaUrl) {
     const isYoutube = /youtube\.com|youtu\.be/.test(slide.mediaUrl);
     if (isYoutube) {
-      let embed = slide.mediaUrl;
-      const m = slide.mediaUrl.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
-      if (m) embed = `https://www.youtube.com/embed/${m[1]}?autoplay=1&mute=1`;
+      const id = extractYoutubeId(slide.mediaUrl);
+      if (!id) {
+        return (
+          <div className="flex-1 flex items-center justify-center text-red-400/90 font-bold px-6">
+            Link do YouTube inválido
+          </div>
+        );
+      }
+      const embed = buildYoutubeEmbedUrl(id);
       return (
-        <div className="flex-1 flex items-center justify-center min-h-0 px-6 py-4">
-          <iframe
-            title={slide.title || 'Vídeo'}
-            src={embed}
-            className="w-full max-w-5xl aspect-video rounded-2xl border border-white/10"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+        <div className="relative flex-1 min-h-0 w-full flex flex-col">
+          <div className="relative flex-1 min-h-[min(100%,70vh)] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+            <iframe
+              title={slide.title || 'Vídeo'}
+              src={embed}
+              className="absolute inset-0 h-full w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+            />
+          </div>
         </div>
       );
     }
     return (
-      <div className="flex-1 flex items-center justify-center min-h-0 px-6 py-4">
-        <video
-          src={slide.mediaUrl}
-          className="max-w-full max-h-full rounded-2xl"
-          controls
-          autoPlay
-          muted
-          playsInline
-        />
+      <div className="relative flex-1 min-h-0 w-full flex flex-col">
+        <div className="relative flex-1 min-h-[min(100%,70vh)] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+          <video
+            src={slide.mediaUrl}
+            className="absolute inset-0 h-full w-full object-contain"
+            playsInline
+            autoPlay
+            controls={false}
+            muted={false}
+          />
+        </div>
       </div>
     );
   }
