@@ -1,4 +1,5 @@
 import React from 'react';
+import YoutubeTvPlayer from './YoutubeTvPlayer.tsx';
 import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
@@ -17,23 +18,6 @@ function extractYoutubeId(url: string): string | null {
     /* ignore */
   }
   return null;
-}
-
-/** Embed “chromeless”: autoplay com som, sem barra de controles do YouTube (limitações do player podem ainda mostrar toque em alguns dispositivos). */
-function buildYoutubeEmbedUrl(videoId: string): string {
-  const q = new URLSearchParams({
-    autoplay: '1',
-    mute: '0',
-    controls: '0',
-    modestbranding: '1',
-    rel: '0',
-    playsinline: '1',
-    disablekb: '1',
-    fs: '0',
-    iv_load_policy: '3',
-    cc_load_policy: '0',
-  });
-  return `https://www.youtube.com/embed/${videoId}?${q.toString()}`;
 }
 
 function formatMoney(n: number): string {
@@ -70,17 +54,10 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
           </div>
         );
       }
-      const embed = buildYoutubeEmbedUrl(id);
       return (
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
           <div className="relative flex-1 min-h-[min(100%,70vh)] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
-            <iframe
-              title={slide.title || 'Vídeo'}
-              src={embed}
-              className="absolute inset-0 h-full w-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              allowFullScreen
-            />
+            <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
           </div>
         </div>
       );
