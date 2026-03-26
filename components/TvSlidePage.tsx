@@ -56,7 +56,8 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
       }
       return (
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
-          <div className="relative flex-1 min-h-[min(100%,70vh)] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          {/* Altura mínima em vh: com 100% do pai ainda não calculado, min(100%,70vh) virava 0 e o iframe não carregava direito. */}
+          <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
             <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
           </div>
         </div>
@@ -64,7 +65,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
     }
     return (
       <div className="relative flex-1 min-h-0 w-full flex flex-col">
-        <div className="relative flex-1 min-h-[min(100%,70vh)] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+        <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
           <video
             src={slide.mediaUrl}
             className="absolute inset-0 h-full w-full object-contain"
