@@ -240,13 +240,11 @@ const App: React.FC = () => {
       lastSlideSoundIdRef.current = null;
       return;
     }
-    if (!currentSlide || !data?.tvPreferences?.slidesSoundEnabled || !soundEnabled) return;
-    const t = currentSlide.slideType;
-    if (!['notice', 'alert', 'image', 'goal'].includes(t)) return;
+    if (!currentSlide || currentSlide.playSound !== true || !soundEnabled) return;
     if (lastSlideSoundIdRef.current === currentSlide.id) return;
     lastSlideSoundIdRef.current = currentSlide.id;
     void playNotificationSound(true, 1);
-  }, [isSlidePage, currentSlide, data?.tvPreferences?.slidesSoundEnabled, soundEnabled]);
+  }, [isSlidePage, currentSlide, soundEnabled]);
 
   const weeklyPercent =
     data?.weeklyGoal &&
@@ -369,10 +367,7 @@ const App: React.FC = () => {
 
       {isSlidePage && currentSlide ? (
         <main className="flex-1 flex flex-col min-h-0">
-          <TvSlidePage
-            slide={currentSlide}
-            goalSlideShowValues={data?.tvPreferences?.goalSlideShowValues === true}
-          />
+          <TvSlidePage slide={currentSlide} />
         </main>
       ) : (
         <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">

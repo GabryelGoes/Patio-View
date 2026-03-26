@@ -40,6 +40,10 @@ export interface TvSlide {
   goalCurrent: number | null;
   goalTarget: number | null;
   goalLabel: string | null;
+  /** Bip ao exibir este slide na TV (respeita também o som do header). */
+  playSound?: boolean;
+  /** Só tipo goal: true = R$, false = só %. */
+  goalShowValues?: boolean;
 }
 
 export interface TvWeeklyGoal {
@@ -50,15 +54,9 @@ export interface TvWeeklyGoal {
   showWeeklyBar?: boolean;
 }
 
-export interface TvPreferences {
-  slidesSoundEnabled: boolean;
-  goalSlideShowValues: boolean;
-}
-
 export interface WorkshopData {
   boardName: string;
   vehicles: Vehicle[];
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
-  tvPreferences: TvPreferences;
 }

@@ -4,8 +4,6 @@ import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
   slide: TvSlide;
-  /** Slide tipo meta: true = atual/meta em R$, false = só %. */
-  goalSlideShowValues?: boolean;
 }
 
 function formatMoney(n: number): string {
@@ -30,7 +28,7 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, goalSlideShowValues = false }) => {
+const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
   const t = slide.slideType;
 
   if (t === 'image' && slide.mediaUrl) {
@@ -91,7 +89,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, goalSlideShowValues = 
           {slide.goalLabel || slide.title || 'Meta'}
         </h2>
         <div className="w-full max-w-3xl space-y-4">
-          {goalSlideShowValues ? (
+          {slide.goalShowValues === true ? (
             <div className="flex justify-between text-yellow-400 font-black text-2xl md:text-4xl gap-4">
               <span className="min-w-0 truncate">{formatMoney(cur)}</span>
               <span className="text-white/40 shrink-0">/</span>
