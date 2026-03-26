@@ -7,6 +7,7 @@ import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
+import { playSlideAlertSound } from './utils/slideAlertSound.ts';
 
 const STAGE_PRIORITY: Record<string, number> = {
   'Garantia': 1,
@@ -243,7 +244,7 @@ const App: React.FC = () => {
     if (!currentSlide || currentSlide.playSound !== true || !soundEnabled) return;
     if (lastSlideSoundIdRef.current === currentSlide.id) return;
     lastSlideSoundIdRef.current = currentSlide.id;
-    void playNotificationSound(true, 1);
+    void playSlideAlertSound();
   }, [isSlidePage, currentSlide, soundEnabled]);
 
   const weeklyPercent =
