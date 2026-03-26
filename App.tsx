@@ -323,11 +323,7 @@ const App: React.FC = () => {
         <div className="px-5 mb-3 space-y-1">
           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
             <span>{data.weeklyGoal.label}</span>
-            <span className="text-yellow-500/90">
-              {data.weeklyGoal.currentAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
-              {' / '}
-              {data.weeklyGoal.targetAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
-            </span>
+            <span className="text-yellow-500/90 tabular-nums">{Math.round(weeklyPercent)}%</span>
           </div>
           <div className="h-2.5 rounded-full bg-white/5 overflow-hidden border border-white/10">
             <div

@@ -20,14 +20,6 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-function formatMoney(n: number): string {
-  try {
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-  } catch {
-    return String(n);
-  }
-}
-
 const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
   const t = slide.slideType;
 
@@ -89,11 +81,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
           {slide.goalLabel || slide.title || 'Meta'}
         </h2>
         <div className="w-full max-w-3xl space-y-4">
-          <div className="flex justify-between text-yellow-400 font-black text-2xl md:text-4xl">
-            <span>{formatMoney(cur)}</span>
-            <span className="text-white/40">/</span>
-            <span>{formatMoney(tgt)}</span>
-          </div>
+          <p className="text-center text-5xl md:text-7xl font-black tabular-nums text-yellow-400">{Math.round(pct)}%</p>
           <div className="h-6 rounded-full bg-white/10 overflow-hidden border border-white/20">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-orange-500 transition-all duration-700"
