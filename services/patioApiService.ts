@@ -103,7 +103,10 @@ async function fetchTvPlaylist(): Promise<{ tvSlides: TvSlide[]; weeklyGoal: TvW
       data.weeklyGoal &&
       typeof data.weeklyGoal === 'object' &&
       data.weeklyGoal !== null
-        ? (data.weeklyGoal as TvWeeklyGoal)
+        ? ({
+            ...(data.weeklyGoal as TvWeeklyGoal),
+            showWeeklyBar: (data.weeklyGoal as { showWeeklyBar?: boolean }).showWeeklyBar !== false,
+          } as TvWeeklyGoal)
         : null;
     return { tvSlides: slides, weeklyGoal };
   } catch {

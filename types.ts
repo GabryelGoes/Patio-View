@@ -46,6 +46,8 @@ export interface TvWeeklyGoal {
   label: string;
   currentAmount: number;
   targetAmount: number;
+  /** Se false, a barra de meta não aparece na TV (páginas de veículos). */
+  showWeeklyBar?: boolean;
 }
 
 export interface WorkshopData {

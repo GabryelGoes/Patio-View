@@ -319,7 +319,10 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {data?.weeklyGoal && data.weeklyGoal.targetAmount > 0 && (
+      {!isSlidePage &&
+        data?.weeklyGoal &&
+        data.weeklyGoal.targetAmount > 0 &&
+        data.weeklyGoal.showWeeklyBar !== false && (
         <div className="px-5 mb-3 space-y-1">
           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
             <span>{data.weeklyGoal.label}</span>
