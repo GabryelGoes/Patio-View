@@ -90,6 +90,13 @@ function firstNameOnly(fullName: string | null | undefined): string {
   return first || 'Cliente';
 }
 
+/** Normaliza um slide da playlist (API envia pinImmediate; aceita pin_immediate se vier). */
+function normalizeTvSlide(raw: Record<string, unknown>): TvSlide {
+  const base = raw as unknown as TvSlide;
+  const pin = base.pinImmediate === true || raw.pin_immediate === true;
+  return { ...base, pinImmediate: pin };
+}
+
 async function fetchTvPlaylist(): Promise<{
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
@@ -100,7 +107,7 @@ async function fetchTvPlaylist(): Promise<{
     if (!res.ok) return { tvSlides: [], weeklyGoal: null };
     const data = await res.json();
     const slides = Array.isArray(data.slides)
-      ? (data.slides as TvSlide[])
+      ? (data.slides as Record<string, unknown>[]).map(normalizeTvSlide)
       : [];
     const weeklyGoal =
       data.weeklyGoal &&

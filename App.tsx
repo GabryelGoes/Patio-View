@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { WorkshopData, Stage, Vehicle } from './types.ts';
 import { fetchWorkshopData } from './services/patioApiService.ts';
 import Clock from './Clock.tsx';
@@ -126,6 +126,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    if (data?.tvSlides?.some((sl) => sl.pinImmediate)) return;
     if (highlightQueue.length > 0 && !activeHighlightId && celebrationQueue.length === 0 && garantiaQueue.length === 0) {
       const nextId = highlightQueue[0];
       if (data) {
@@ -147,7 +148,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const refreshInterval = setInterval(loadData, 5000);
+    /** Atualização mais frequente para refletir rápido “Exibir imediatamente” na gestão. */
+    const refreshInterval = setInterval(loadData, 2500);
     return () => clearInterval(refreshInterval);
   }, [soundEnabled]);
 
@@ -183,6 +185,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isEvaluationAlertActive && data) {
+      if (data.tvSlides?.some((sl) => sl.pinImmediate)) return;
       const firstPendingIndex = data.vehicles.findIndex(v => 
         v.stage.toLowerCase().includes('avaliação') && v.stage.toLowerCase().includes('aguardando')
       );
@@ -196,14 +199,30 @@ const App: React.FC = () => {
   const slideCount = data?.tvSlides?.length ?? 0;
   const totalPages = vehiclePages + slideCount;
 
+  const pinnedSlideIndex = useMemo(() => {
+    const slides = data?.tvSlides;
+    if (!slides?.length) return -1;
+    return slides.findIndex((sl) => sl.pinImmediate === true);
+  }, [data?.tvSlides]);
+
+  const isPinnedMode = pinnedSlideIndex >= 0;
+
+  /** Com slide fixo na gestão, mantém a TV neste slide (sem contagem de tempo). */
   useEffect(() => {
-    if (!data) return;
+    if (!data || !isPinnedMode || pinnedSlideIndex < 0) return;
+    const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
+    setPage(vp + pinnedSlideIndex);
+  }, [data, isPinnedMode, pinnedSlideIndex]);
+
+  useEffect(() => {
+    if (!data || isPinnedMode) return;
     const tp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE)) + (data.tvSlides?.length ?? 0);
     if (page >= tp) setPage(0);
-  }, [page, data?.vehicles?.length, data?.tvSlides?.length]);
+  }, [page, data?.vehicles?.length, data?.tvSlides?.length, isPinnedMode]);
 
   useEffect(() => {
     if (!data) return;
+    if (isPinnedMode) return;
     const hasActiveOverlay = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
     if (hasActiveOverlay) return;
 
@@ -230,6 +249,7 @@ const App: React.FC = () => {
     garantiaQueue.length,
     activeHighlightId,
     isEvaluationAlertActive,
+    isPinnedMode,
   ]);
 
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
@@ -309,7 +329,9 @@ const App: React.FC = () => {
             {isEvaluationAlertActive 
               ? <span className="text-yellow-400 animate-pulse">ALERTA: AVALIAÇÃO PENDENTE</span> 
               : isSlidePage
-                ? <span className="text-emerald-400/90">TV — CONTEÚDO</span>
+                ? (currentSlide?.pinImmediate
+                  ? <span className="text-amber-400/95">TV — CONTEÚDO FIXO</span>
+                  : <span className="text-emerald-400/90">TV — CONTEÚDO</span>)
                 : `PÁGINA ${page + 1} - ${totalPagesCount}`}
           </p>
         </div>
