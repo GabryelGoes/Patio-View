@@ -159,12 +159,21 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
 
   const status = getDeliveryStatus();
 
+  /** Destaque de mudança de etapa (TV): evita glow branco grande e ring-offset — geram faixas claras no topo/base do card. */
+  const highlightClasses = isHighlighted
+    ? 'scale-[1.04] z-50 ring-[3px] ring-inset ring-white ring-offset-0 shadow-[0_0_24px_rgba(255,255,255,0.2)]'
+    : 'z-0 shadow-xl scale-100 border-transparent';
+  const garantiaRingClasses =
+    showGarantiaRing && !isHighlighted
+      ? 'ring-[3px] ring-inset ring-red-600 ring-offset-0 shadow-[0_0_18px_rgba(220,38,38,0.4)]'
+      : '';
+
   return (
     <div className={`
       flex items-center w-full h-full rounded-[24px] border px-8 py-3 transition-all duration-1000 relative
       ${colorClass}
-      ${showGarantiaRing ? 'ring-4 ring-red-600 ring-offset-4 ring-offset-black shadow-[0_0_0_5px_rgba(220,38,38,1),0_0_20px_rgba(220,38,38,0.6)]' : ''}
-      ${isHighlighted ? 'scale-[1.06] z-50 border-white border-[4px] shadow-[0_0_80px_rgba(255,255,255,0.4)]' : 'z-0 shadow-xl scale-100 border-transparent'}
+      ${garantiaRingClasses}
+      ${highlightClasses}
       ${shouldShake ? 'animate-wiggle border-yellow-400 border-[3px] shadow-[0_0_40px_rgba(250,204,21,0.6)] z-40' : ''}
       ${hasAnyHighlight && !isHighlighted && !shouldShake ? 'opacity-20 grayscale-[0.8] scale-100' : 'opacity-100 grayscale-0'}
       overflow-x-hidden overflow-y-visible
