@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
+import { playGarantiaScreenSound } from './utils/garantiaScreenSound.ts';
 
 interface GarantiaOverlayProps {
   vehicle: Vehicle;
@@ -9,40 +10,13 @@ interface GarantiaOverlayProps {
   soundEnabled: boolean;
 }
 
-const playAlertSound = async (soundEnabled: boolean) => {
-  if (!soundEnabled) return;
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') await ctx.resume();
-    
-    const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    };
-
-    const now = ctx.currentTime;
-    playTone(180, now, 0.5, 0.3);
-    playTone(110, now + 0.2, 0.8, 0.4);
-  } catch (e) { console.warn(e); }
-};
-
 const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, soundEnabled }) => {
   const [isExiting, setIsExiting] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    playAlertSound(soundEnabled);
+    if (soundEnabled) void playGarantiaScreenSound();
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
