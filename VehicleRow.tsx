@@ -130,9 +130,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**
-   * Destaque e aro de garantia via estilo inline: o painel usa Tailwind CDN e não compila
-   * ring-inset / ring-[npx] como o PostCSS — o aro sumia. box-shadow inset e outline não dependem disso.
-   * Sem scale no destaque: evita recorte/artefatos no grid da TV (faixas claras).
+   * Destaque só com filter (brightness/saturate): sem outline e sem sombra externa no card,
+   * para não formar “aro” claro na borda. Garantia: inset vermelho. Shake: glow amarelo.
    */
   const cardAccentStyle = useMemo((): React.CSSProperties => {
     const shadows: string[] = [];
@@ -145,8 +144,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
     const style: React.CSSProperties = {};
     if (shadows.length > 0) style.boxShadow = shadows.join(', ');
     if (isHighlighted && !shouldShake) {
-      style.outline = '3px solid rgba(255, 255, 255, 0.95)';
-      style.outlineOffset = '-3px';
+      style.filter = 'brightness(1.16) saturate(1.08)';
     }
     return style;
   }, [showGarantiaRing, isHighlighted, shouldShake]);
