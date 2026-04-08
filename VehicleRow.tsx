@@ -130,13 +130,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**
-   * Destaque só com filter (brightness/saturate): sem outline e sem sombra externa no card,
-   * para não formar “aro” claro na borda. Garantia: inset vermelho. Shake: glow amarelo.
+   * Destaque só com filter (brightness/saturate), sem contorno claro na borda.
+   * Garantia: aro vermelho por fora (box-shadow 0 0 0, sem blur). Shake: glow amarelo.
    */
   const cardAccentStyle = useMemo((): React.CSSProperties => {
     const shadows: string[] = [];
     if (showGarantiaRing) {
-      shadows.push('inset 0 0 0 5px rgb(220, 38, 38)');
+      shadows.push('0 0 0 5px rgb(220, 38, 38)');
     }
     if (shouldShake) {
       shadows.push('0 0 36px rgba(250, 204, 21, 0.45)');
@@ -188,7 +188,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       shadow-xl scale-100
       ${shouldShake ? 'animate-wiggle border-yellow-400 border-[3px]' : 'border-transparent'}
       ${hasAnyHighlight && !isHighlighted && !shouldShake ? 'opacity-20 grayscale-[0.8] scale-100' : 'opacity-100 grayscale-0'}
-      overflow-x-hidden overflow-y-visible
+      ${showGarantiaRing ? 'overflow-visible' : 'overflow-x-hidden overflow-y-visible'}
     `}
       style={cardAccentStyle}
     >
