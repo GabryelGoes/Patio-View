@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
 
@@ -129,6 +129,28 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const shouldShake = isAlerting && (s.includes('avaliação') && s.includes('aguardando'));
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
+  /**
+   * Destaque e aro de garantia via estilo inline: o painel usa Tailwind CDN e não compila
+   * ring-inset / ring-[npx] como o PostCSS — o aro sumia. box-shadow inset e outline não dependem disso.
+   * Sem scale no destaque: evita recorte/artefatos no grid da TV (faixas claras).
+   */
+  const cardAccentStyle = useMemo((): React.CSSProperties => {
+    const shadows: string[] = [];
+    if (showGarantiaRing) {
+      shadows.push('inset 0 0 0 5px rgb(220, 38, 38)');
+    }
+    if (shouldShake) {
+      shadows.push('0 0 36px rgba(250, 204, 21, 0.45)');
+    }
+    const style: React.CSSProperties = {};
+    if (shadows.length > 0) style.boxShadow = shadows.join(', ');
+    if (isHighlighted && !shouldShake) {
+      style.outline = '3px solid rgba(255, 255, 255, 0.95)';
+      style.outlineOffset = '-3px';
+    }
+    return style;
+  }, [showGarantiaRing, isHighlighted, shouldShake]);
+
   useEffect(() => {
     if (!isFinalizado) return;
     const interval = setInterval(() => { setShowAnim(prev => !prev); }, 3000); 
@@ -159,25 +181,19 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
 
   const status = getDeliveryStatus();
 
-  /** Destaque de mudança de etapa (TV): evita glow branco grande e ring-offset — geram faixas claras no topo/base do card. */
-  const highlightClasses = isHighlighted
-    ? 'scale-[1.04] z-50 ring-[3px] ring-inset ring-white ring-offset-0 shadow-[0_0_24px_rgba(255,255,255,0.2)]'
-    : 'z-0 shadow-xl scale-100 border-transparent';
-  const garantiaRingClasses =
-    showGarantiaRing && !isHighlighted
-      ? 'ring-[3px] ring-inset ring-red-600 ring-offset-0 shadow-[0_0_18px_rgba(220,38,38,0.4)]'
-      : '';
-
   return (
-    <div className={`
+    <div
+      className={`
       flex items-center w-full h-full rounded-[24px] border px-8 py-3 transition-all duration-1000 relative
       ${colorClass}
-      ${garantiaRingClasses}
-      ${highlightClasses}
-      ${shouldShake ? 'animate-wiggle border-yellow-400 border-[3px] shadow-[0_0_40px_rgba(250,204,21,0.6)] z-40' : ''}
+      ${isHighlighted ? 'z-50' : shouldShake ? 'z-40' : 'z-0'}
+      shadow-xl scale-100
+      ${shouldShake ? 'animate-wiggle border-yellow-400 border-[3px]' : 'border-transparent'}
       ${hasAnyHighlight && !isHighlighted && !shouldShake ? 'opacity-20 grayscale-[0.8] scale-100' : 'opacity-100 grayscale-0'}
       overflow-x-hidden overflow-y-visible
-    `}>
+    `}
+      style={cardAccentStyle}
+    >
       <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
