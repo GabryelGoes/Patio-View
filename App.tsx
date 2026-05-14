@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WorkshopData, Stage, Vehicle } from './types.ts';
 import { fetchWorkshopData } from './services/patioApiService.ts';
 import Clock from './Clock.tsx';
@@ -7,7 +7,10 @@ import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
+import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
 import { playSlideAlertSound } from './utils/slideAlertSound.ts';
+import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
+import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
 
 const STAGE_PRIORITY: Record<string, number> = {
   'Garantia': 1,
@@ -85,6 +88,18 @@ const App: React.FC = () => {
   const previousVehiclesRef = useRef<Record<string, string>>({});
   const CARS_PER_PAGE = 6;
 
+  const [chimeLive, setChimeLive] = useState(() => defaultTvChimeSchedule());
+  const chimeLiveRef = useRef(chimeLive);
+  chimeLiveRef.current = chimeLive;
+  const chimeLiveJsonRef = useRef('');
+  const [chimeBanner, setChimeBanner] = useState<{
+    title: string;
+    message: string;
+    phase: 'pre' | 'main';
+    kind: TvChimeKind;
+  } | null>(null);
+  const chimeBannerTimerRef = useRef<number | null>(null);
+
   const loadData = async () => {
     try {
       const result = await fetchWorkshopData();
@@ -117,7 +132,14 @@ const App: React.FC = () => {
       if (newlyGarantia.length > 0) setGarantiaQueue(prev => [...prev, ...newlyGarantia]);
       if (standardChanges.length > 0) setHighlightQueue(prev => [...prev, ...standardChanges]);
 
-      setData({ ...result, vehicles: sortedVehicles });
+      const nextData: WorkshopData = { ...result, vehicles: sortedVehicles };
+      const chNorm = normalizeTvChimeConfig(nextData.chimeSchedule ?? null);
+      const cj = JSON.stringify(chNorm);
+      if (cj !== chimeLiveJsonRef.current) {
+        chimeLiveJsonRef.current = cj;
+        setChimeLive(chNorm);
+      }
+      setData(nextData);
     } catch (error) { 
       console.error(error); 
     } finally { 
@@ -267,6 +289,52 @@ const App: React.FC = () => {
     void playSlideAlertSound();
   }, [isSlidePage, currentSlide, soundEnabled]);
 
+  const chimeConfigForHook = useMemo(
+    () => ({
+      ...chimeLive,
+      soundVolume: soundEnabled ? chimeLive.soundVolume : 0.0001,
+      preNotifyPlaySound: soundEnabled && chimeLive.preNotifyPlaySound,
+    }),
+    [chimeLive, soundEnabled]
+  );
+
+  const onTvChimeFire = useCallback(
+    (payload: TvChimeFirePayload) => {
+      const cfg = chimeLiveRef.current;
+      const seconds =
+        payload.phase === 'pre'
+          ? Math.min(18, Math.max(8, cfg.bannerSeconds))
+          : cfg.bannerSeconds;
+      if (chimeBannerTimerRef.current) window.clearTimeout(chimeBannerTimerRef.current);
+      if (payload.phase === 'pre' && cfg.preNotifyMinutes > 0) {
+        setChimeBanner({
+          title: `Em ${cfg.preNotifyMinutes} min`,
+          message: `${payload.alert.label} · ${payload.alert.time}`,
+          phase: 'pre',
+          kind: 'info',
+        });
+      } else if (payload.phase === 'main') {
+        setChimeBanner({
+          title: payload.alert.label,
+          message: payload.alert.message || '—',
+          phase: 'main',
+          kind: payload.alert.kind,
+        });
+      }
+      chimeBannerTimerRef.current = window.setTimeout(() => {
+        setChimeBanner(null);
+        chimeBannerTimerRef.current = null;
+      }, seconds * 1000);
+    },
+    []
+  );
+
+  useTvChimeSchedule({
+    enabled: !loading && chimeLive.masterEnabled,
+    config: chimeConfigForHook,
+    onFire: onTvChimeFire,
+  });
+
   const weeklyPercent =
     data?.weeklyGoal &&
     data.weeklyGoal.targetAmount > 0 &&
@@ -289,6 +357,26 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
+      {chimeBanner && (
+        <div className="pointer-events-none fixed inset-0 z-[500] flex items-center justify-center bg-black/60 p-4 sm:p-8">
+          <TvChimeBannerCard
+            variant="display"
+            phase={chimeBanner.phase}
+            kind={chimeBanner.kind}
+            title={chimeBanner.title}
+            message={chimeBanner.message}
+            className="pointer-events-auto w-full"
+            onDismiss={() => {
+              setChimeBanner(null);
+              if (chimeBannerTimerRef.current) {
+                window.clearTimeout(chimeBannerTimerRef.current);
+                chimeBannerTimerRef.current = null;
+              }
+            }}
+            dismissAriaLabel="Fechar aviso"
+          />
+        </div>
+      )}
       {celebrationQueue.length > 0 && (
         <CelebrationOverlay 
           key={celebrationQueue[0].id}

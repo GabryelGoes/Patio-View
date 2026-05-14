@@ -1,11 +1,16 @@
 # View Pátio — Rei do ABS
 
-Painel de TV do pátio: exibe em tempo real as ordens de serviço (veículos) consumindo a API do sistema de gestão da oficina.
+Painel de TV do pátio: ordens de serviço em tempo real + **slides da playlist** e **avisos programados** (`chimeSchedule`), consumindo a API do sistema de gestão.
 
-- Atualização automática a cada 15 s  
+- Atualização automática a cada **2,5 s** (veículos + playlist TV)  
 - Etapas ordenadas (Garantia, Aguardando avaliação, Em serviço, etc.)  
 - Overlays: orçamento aprovado, garantia, alerta de avaliação pendente  
+- **Avisos por horário**: mesma API que o app principal (`GET /api/tv/playlist` → `chimeSchedule`); exibição alinhada ao slide tipo «Aviso» (cabeçalho REI DO ABS + texto grande em fundo preto)  
 - Paginação e som opcional em horário de expediente  
+
+### Manutenção em par com o sistema principal
+
+Os ficheiros `utils/tvChimeSchedule.ts` e `components/TvChimeBannerCard.tsx` devem **copiar-se do repositório do sistema de gestão** (RDA-Trello) quando a lógica ou o layout dos avisos mudar, para o painel e o gestor continuarem iguais.
 
 ## Pré-requisitos
 
@@ -48,7 +53,9 @@ Se o painel for hospedado em um domínio diferente da API (ex.: `painel-patio.ve
 
 ## Estrutura
 
-- `App.tsx` — estado, refresh, overlays e paginação  
-- `services/patioApiService.ts` — chamada a `GET /api/service-orders?orderType=vehicle` e mapeamento para o modelo do painel  
+- `App.tsx` — estado, refresh, overlays, paginação, **avisos programados** (`useTvChimeSchedule`)  
+- `services/patioApiService.ts` — `GET /api/service-orders?orderType=vehicle` e **`GET /api/tv/playlist`** (slides + meta + `chimeSchedule`)  
 - `types.ts` — `Vehicle`, `Stage`, `WorkshopData`  
-- Componentes: `VehicleRow`, `Clock`, `CelebrationOverlay`, `GarantiaOverlay`
+- `utils/tvChimeSchedule.ts`, `utils/tvChimeAudio.ts`, `hooks/useTvChimeSchedule.ts` — horários da TV  
+- `components/TvChimeBannerCard.tsx` — layout do aviso na TV  
+- Componentes: `VehicleRow`, `Clock`, `CelebrationOverlay`, `GarantiaOverlay`, `TvSlidePage`

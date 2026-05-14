@@ -3,6 +3,7 @@
  */
 
 import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal } from '../types';
+import { normalizeTvChimeConfig, type TvChimeScheduleConfig } from '../utils/tvChimeSchedule';
 
 const getEnv = (key: string): string =>
   (import.meta as any).env?.[key] ?? '';
@@ -100,11 +101,12 @@ function normalizeTvSlide(raw: Record<string, unknown>): TvSlide {
 async function fetchTvPlaylist(): Promise<{
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  chimeSchedule: TvChimeScheduleConfig | null;
 }> {
-  if (!API_BASE) return { tvSlides: [], weeklyGoal: null };
+  if (!API_BASE) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
   try {
-    const res = await fetch(`${API_BASE}/tv/playlist`);
-    if (!res.ok) return { tvSlides: [], weeklyGoal: null };
+    const res = await fetch(`${API_BASE}/tv/playlist`, { cache: 'no-store' });
+    if (!res.ok) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
     const data = await res.json();
     const slides = Array.isArray(data.slides)
       ? (data.slides as Record<string, unknown>[]).map(normalizeTvSlide)
@@ -118,9 +120,10 @@ async function fetchTvPlaylist(): Promise<{
             showWeeklyBar: (data.weeklyGoal as { showWeeklyBar?: boolean }).showWeeklyBar !== false,
           } as TvWeeklyGoal)
         : null;
-    return { tvSlides: slides, weeklyGoal };
+    const chimeSchedule = normalizeTvChimeConfig(data.chimeSchedule ?? null);
+    return { tvSlides: slides, weeklyGoal, chimeSchedule };
   } catch {
-    return { tvSlides: [], weeklyGoal: null };
+    return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
   }
 }
 
@@ -132,6 +135,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles: [],
       tvSlides: [],
       weeklyGoal: null,
+      chimeSchedule: null,
     };
   }
 
@@ -149,6 +153,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         vehicles: [],
         tvSlides: tvBundle.tvSlides,
         weeklyGoal: tvBundle.weeklyGoal,
+        chimeSchedule: tvBundle.chimeSchedule,
       };
     }
 
@@ -182,6 +187,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles,
       tvSlides: tvBundle.tvSlides,
       weeklyGoal: tvBundle.weeklyGoal,
+      chimeSchedule: tvBundle.chimeSchedule,
     };
   } catch (err) {
     console.error('Erro ao buscar dados do pátio:', err);
@@ -190,6 +196,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles: [],
       tvSlides: [],
       weeklyGoal: null,
+      chimeSchedule: null,
     };
   }
 }
