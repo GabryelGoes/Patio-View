@@ -17,6 +17,7 @@ const STATUS_TO_STAGE: Record<string, Stage> = {
   AGUARDANDO_APROVACAO: 'Aguardando Aprovação',
   ORCAMENTO_APROVADO: 'Orçamento Aprovado',
   AGUARDANDO_PECAS: 'Aguardando Peças',
+  PECAS_DISPONIVEIS: 'Peças Disponíveis',
   EM_SERVICO: 'Em Serviço',
   FASE_DE_TESTE: 'Fase de Teste',
   FINALIZADO: 'Finalizado',

@@ -21,10 +21,11 @@ const STAGE_PRIORITY: Record<string, number> = {
   'Aprovado': 6,
   'Orçamento Aprovado': 7,
   'Aguardando Peças': 8,
-  'Em Serviço': 9,
-  'Fase de Teste': 10,
-  'Finalizado': 11,
-  'Orçamento Não Aprovado': 12
+  'Peças Disponíveis': 9,
+  'Em Serviço': 10,
+  'Fase de Teste': 11,
+  'Finalizado': 12,
+  'Orçamento Não Aprovado': 13
 };
 
 const playNotificationSound = async (soundEnabled: boolean, repeat = 1) => {

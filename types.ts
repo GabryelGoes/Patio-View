@@ -8,6 +8,7 @@ export type Stage =
   | 'Orçamento Aprovado'
   | 'Em Serviço' 
   | 'Aguardando Peças' 
+  | 'Peças Disponíveis'
   | 'Fase de Teste' 
   | 'Finalizado' 
   | 'Garantia' 

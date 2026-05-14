@@ -24,7 +24,13 @@ const getStageColors = (stage: Stage) => {
   
   if (s.includes('serviço')) return 'bg-blue-600 text-white border-blue-500';
   if (s.includes('aprovado')) return 'bg-orange-600 text-white border-orange-500';
-  
+
+  if (s.includes('disponíve') || s.includes('disponive')) {
+    return 'bg-pink-500 text-white border-pink-400 shadow-[0_0_18px_rgba(236,72,153,0.35)]';
+  }
+  if (s.includes('aguardando') && s.includes('peças')) {
+    return 'bg-cyan-500 text-cyan-950 border-cyan-400';
+  }
   if (s.includes('peças')) return 'bg-cyan-500 text-cyan-950 border-cyan-400';
   if (s.includes('teste')) return 'bg-green-800 text-white border-green-700'; 
   if (s.includes('finalizado')) return 'bg-green-500 text-black border-green-400';
