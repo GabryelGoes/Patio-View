@@ -119,6 +119,26 @@ const TestDriveCarAnimation: React.FC = () => (
   </div>
 );
 
+const PecasDisponiveisIcon: React.FC = () => (
+  <div className="relative w-12 h-12 shrink-0 flex items-center justify-center mr-1" aria-hidden>
+    <svg
+      viewBox="0 0 44 44"
+      className="w-11 h-11 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)] overflow-visible"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="36" cy="9" r="2.2" fill="currentColor" className="animate-pecas-sparkle" style={{ animationDelay: '0ms' }} />
+      <circle cx="7" cy="11" r="1.6" fill="currentColor" className="animate-pecas-sparkle" style={{ animationDelay: '180ms' }} />
+      <circle cx="38" cy="26" r="1.5" fill="currentColor" className="animate-pecas-sparkle" style={{ animationDelay: '360ms' }} />
+      <g className="animate-pecas-boxes" style={{ transformOrigin: '22px 26px' }}>
+        <rect x="7" y="22" width="24" height="15" rx="3" stroke="currentColor" strokeWidth="2" fill="rgba(255,255,255,0.18)" />
+        <rect x="13" y="9" width="20" height="15" rx="2.5" stroke="currentColor" strokeWidth="2" fill="rgba(255,255,255,0.32)" />
+        <path d="M18 14h10M18 17h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.85" />
+      </g>
+    </svg>
+  </div>
+);
+
 const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyHighlight, isAlerting }) => {
   const [showAnim, setShowAnim] = useState(false);
   const colorClass = getStageColors(vehicle.stage);
@@ -132,6 +152,9 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const isFinalizado = s.includes('finalizado');
   const isAvaliacaoTecnica = s.includes('avaliação técnica') || s.includes('avaliacao tecnica');
   const isGarantia = s.includes('garantia');
+  const isPecasDisponiveis =
+    (s.includes('peças') || s.includes('pecas')) &&
+    (s.includes('disponíve') || s.includes('disponive'));
 
   const shouldShake = isAlerting && (s.includes('avaliação') && s.includes('aguardando'));
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
@@ -186,23 +209,28 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <p className="text-xl font-bold uppercase tracking-tight leading-[1.2] truncate overflow-visible">{vehicle.client}</p>
       </div>
 
-      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isNaoAprovado ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
-        <div className={`flex items-center h-full w-full overflow-hidden ${isEmServico ? 'gap-1 -translate-x-[20%]' : 'gap-2'} ${isFinalizado || isGarantia || isFaseDeTeste || isNaoAprovado ? 'justify-center' : ''}`}>
+      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isNaoAprovado || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
+        <div className={`flex items-center h-full w-full overflow-hidden ${isEmServico ? 'gap-1 -translate-x-[20%]' : 'gap-2'} ${isFinalizado || isGarantia || isFaseDeTeste || isNaoAprovado || isPecasDisponiveis ? 'justify-center' : ''}`}>
           {!isFinalizado && isEmServico && <CarLiftAnimation />}
           {!isFinalizado && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
+          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2">
                <div className="absolute w-[2px] h-2 bg-current origin-bottom bottom-1/2 animate-[spin_3s_linear_infinite]"></div>
             </div>
           )}
           
-          <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado || isNaoAprovado ? 'w-full justify-center' : 'w-full'}`}>
+          <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado || isNaoAprovado || isPecasDisponiveis ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
                <div className="flex items-center justify-center w-full">
                   <TestDriveCarAnimation />
                   <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
                </div>
+            ) : isPecasDisponiveis ? (
+              <div className="flex items-center justify-center w-full gap-2">
+                <PecasDisponiveisIcon />
+                <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
+              </div>
             ) : isFinalizado ? (
               <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
                 <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
@@ -279,6 +307,18 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           100% { transform: translateX(-4px); } 
         }
         .animate-car-test-move { animation: car-test-move 2.5s ease-in-out infinite; }
+
+        @keyframes pecas-boxes {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-3px) scale(1.04); }
+        }
+        .animate-pecas-boxes { animation: pecas-boxes 1.15s ease-in-out infinite; }
+
+        @keyframes pecas-sparkle {
+          0%, 100% { opacity: 0.35; transform: scale(0.75); }
+          50% { opacity: 1; transform: scale(1.15); }
+        }
+        .animate-pecas-sparkle { animation: pecas-sparkle 0.85s ease-in-out infinite; }
       `}</style>
     </div>
   );
