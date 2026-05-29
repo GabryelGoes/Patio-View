@@ -106,7 +106,7 @@ async function fetchTvPlaylist(): Promise<{
 }> {
   if (!API_BASE) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
   try {
-    const res = await fetch(`${API_BASE}/tv/playlist`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/tv/playlist?scope=patio`, { cache: 'no-store' });
     if (!res.ok) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
     const data = await res.json();
     const slides = Array.isArray(data.slides)

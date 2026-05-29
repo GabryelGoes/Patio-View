@@ -1,4 +1,6 @@
 
+import type { TvChimeScheduleConfig } from './utils/tvChimeSchedule';
+
 export type Stage = 
   | 'Aguardando Avaliação' 
   | 'Em Avaliação' 
@@ -7,7 +9,7 @@ export type Stage =
   | 'Aprovado' 
   | 'Orçamento Aprovado'
   | 'Em Serviço' 
-  | 'Aguardando Peças' 
+  | 'Aguardando Peças'
   | 'Peças Disponíveis'
   | 'Fase de Teste' 
   | 'Finalizado' 
@@ -45,6 +47,8 @@ export interface TvSlide {
   playSound?: boolean;
   /** Só tipo goal: true = R$, false = só %. */
   goalShowValues?: boolean;
+  /** Fixar este slide na TV (gestão no app principal). */
+  pinImmediate?: boolean;
 }
 
 export interface TvWeeklyGoal {
@@ -60,4 +64,5 @@ export interface WorkshopData {
   vehicles: Vehicle[];
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  chimeSchedule: TvChimeScheduleConfig | null;
 }

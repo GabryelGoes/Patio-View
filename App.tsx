@@ -5,6 +5,7 @@ import { fetchWorkshopData } from './services/patioApiService.ts';
 import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
+import PecasDisponiveisOverlay from './PecasDisponiveisOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
 import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
@@ -82,6 +83,7 @@ const App: React.FC = () => {
   }, []);
   
   const [celebrationQueue, setCelebrationQueue] = useState<Vehicle[]>([]);
+  const [pecasDisponiveisQueue, setPecasDisponiveisQueue] = useState<Vehicle[]>([]);
   const [garantiaQueue, setGarantiaQueue] = useState<{vehicle: Vehicle, indexInPage: number}[]>([]);
   const [highlightQueue, setHighlightQueue] = useState<string[]>([]);
   
@@ -109,6 +111,7 @@ const App: React.FC = () => {
         .sort((a, b) => (STAGE_PRIORITY[a.stage] || 99) - (STAGE_PRIORITY[b.stage] || 99));
 
       const newlyApproved: Vehicle[] = [];
+      const newlyPecasDisponiveis: Vehicle[] = [];
       const newlyGarantia: {vehicle: Vehicle, indexInPage: number}[] = [];
       const standardChanges: string[] = [];
 
@@ -119,6 +122,8 @@ const App: React.FC = () => {
         if (prevStage && prevStage !== currentStage) {
           if (currentStage === 'Orçamento Aprovado') {
             newlyApproved.push(vehicle);
+          } else if (currentStage === 'Peças Disponíveis') {
+            newlyPecasDisponiveis.push(vehicle);
           } else if (currentStage === 'Garantia') {
             const indexInPage = globalIndex % CARS_PER_PAGE;
             newlyGarantia.push({ vehicle, indexInPage });
@@ -130,6 +135,8 @@ const App: React.FC = () => {
       });
 
       if (newlyApproved.length > 0) setCelebrationQueue(prev => [...prev, ...newlyApproved]);
+      if (newlyPecasDisponiveis.length > 0)
+        setPecasDisponiveisQueue(prev => [...prev, ...newlyPecasDisponiveis]);
       if (newlyGarantia.length > 0) setGarantiaQueue(prev => [...prev, ...newlyGarantia]);
       if (standardChanges.length > 0) setHighlightQueue(prev => [...prev, ...standardChanges]);
 
@@ -150,7 +157,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (data?.tvSlides?.some((sl) => sl.pinImmediate)) return;
-    if (highlightQueue.length > 0 && !activeHighlightId && celebrationQueue.length === 0 && garantiaQueue.length === 0) {
+    if (highlightQueue.length > 0 && !activeHighlightId && celebrationQueue.length === 0 && pecasDisponiveisQueue.length === 0 && garantiaQueue.length === 0) {
       const nextId = highlightQueue[0];
       if (data) {
         const index = data.vehicles.findIndex(v => v.id === nextId);
@@ -167,7 +174,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [highlightQueue, activeHighlightId, celebrationQueue.length, garantiaQueue.length, data, soundEnabled]);
+  }, [highlightQueue, activeHighlightId, celebrationQueue.length, pecasDisponiveisQueue.length, garantiaQueue.length, data, soundEnabled]);
 
   useEffect(() => {
     loadData();
@@ -246,7 +253,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!data) return;
     if (isPinnedMode) return;
-    const hasActiveOverlay = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
+    const hasActiveOverlay = celebrationQueue.length > 0 || pecasDisponiveisQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
     if (hasActiveOverlay) return;
 
     const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
@@ -269,6 +276,7 @@ const App: React.FC = () => {
     data?.vehicles?.length,
     data?.tvSlides?.length,
     celebrationQueue.length,
+    pecasDisponiveisQueue.length,
     garantiaQueue.length,
     activeHighlightId,
     isEvaluationAlertActive,
@@ -354,7 +362,7 @@ const App: React.FC = () => {
     ? data.vehicles.slice(startIndex, startIndex + CARS_PER_PAGE)
     : [];
   const totalPagesCount = Math.max(1, totalPages);
-  const hasAnyHighlight = celebrationQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
+  const hasAnyHighlight = celebrationQueue.length > 0 || pecasDisponiveisQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
@@ -390,8 +398,21 @@ const App: React.FC = () => {
           soundEnabled={soundEnabled} 
         />
       )}
+
+      {celebrationQueue.length === 0 && pecasDisponiveisQueue.length > 0 && (
+        <PecasDisponiveisOverlay
+          key={pecasDisponiveisQueue[0].id}
+          vehicle={pecasDisponiveisQueue[0]}
+          onComplete={() => {
+            const finishedId = pecasDisponiveisQueue[0].id;
+            setHighlightQueue(prev => [...prev, finishedId]);
+            setPecasDisponiveisQueue(prev => prev.slice(1));
+          }}
+          soundEnabled={soundEnabled}
+        />
+      )}
       
-      {celebrationQueue.length === 0 && garantiaQueue.length > 0 && (
+      {celebrationQueue.length === 0 && pecasDisponiveisQueue.length === 0 && garantiaQueue.length > 0 && (
         <GarantiaOverlay 
           key={garantiaQueue[0].vehicle.id}
           vehicle={garantiaQueue[0].vehicle} 
