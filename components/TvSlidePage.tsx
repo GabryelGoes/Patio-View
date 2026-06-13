@@ -1,5 +1,6 @@
 import React from 'react';
 import YoutubeTvPlayer from './YoutubeTvPlayer.tsx';
+import UploadedVideoTvPlayer from './UploadedVideoTvPlayer.tsx';
 import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
@@ -66,14 +67,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
     return (
       <div className="relative flex-1 min-h-0 w-full flex flex-col">
         <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-          <video
-            src={slide.mediaUrl}
-            className="absolute inset-0 h-full w-full object-contain"
-            playsInline
-            autoPlay
-            controls={false}
-            muted={false}
-          />
+          <UploadedVideoTvPlayer src={slide.mediaUrl} />
         </div>
       </div>
     );
