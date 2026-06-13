@@ -221,8 +221,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    /** Atualização mais frequente para refletir rápido “Exibir imediatamente” na gestão. */
-    const refreshInterval = setInterval(loadData, 2500);
+    /** Atualização periódica do quadro (15s) — reduz invocações na Vercel sem perder fluidez. */
+    const refreshInterval = setInterval(loadData, 15000);
     return () => clearInterval(refreshInterval);
   }, [soundEnabled]);
 
