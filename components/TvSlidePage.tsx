@@ -7,6 +7,19 @@ import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
   slide: TvSlide;
+  /** Mídia ocupa a tela toda (sem cabeçalho/bordas). */
+  fullscreen?: boolean;
+}
+
+function imgFitClass(fit: TvSlide['mediaObjectFit']): string {
+  switch (fit) {
+    case 'cover':
+      return 'object-cover';
+    case 'fill':
+      return 'object-fill';
+    default:
+      return 'object-contain';
+  }
 }
 
 function formatMoney(n: number): string {
@@ -31,16 +44,24 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
+const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, fullscreen = false }) => {
   const t = slide.slideType;
 
   if (t === 'image' && slide.mediaUrl) {
+    const fit = imgFitClass(slide.mediaObjectFit);
+    if (fullscreen) {
+      return (
+        <div className="absolute inset-0 bg-black">
+          <img src={slide.mediaUrl} alt={slide.title || 'Imagem'} className={`h-full w-full ${fit}`} />
+        </div>
+      );
+    }
     return (
       <div className="flex-1 flex items-center justify-center min-h-0 px-6 py-4">
         <img
           src={slide.mediaUrl}
           alt={slide.title || 'Imagem'}
-          className="max-w-full max-h-full object-contain rounded-2xl border border-white/10 shadow-2xl"
+          className={`max-w-full max-h-full ${fit} rounded-2xl border border-white/10 shadow-2xl`}
         />
       </div>
     );
@@ -57,6 +78,13 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
           </div>
         );
       }
+      if (fullscreen) {
+        return (
+          <div className="absolute inset-0 bg-black">
+            <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
+          </div>
+        );
+      }
       return (
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
           {/* Altura mínima em vh: com 100% do pai ainda não calculado, min(100%,70vh) virava 0 e o iframe não carregava direito. */}
@@ -67,19 +95,18 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
       );
     }
     const videoFit = slide.mediaObjectFit ?? 'contain';
-    if (isLocalVideoRef(slide.mediaUrl)) {
-      return (
-        <div className="relative flex-1 min-h-0 w-full flex flex-col">
-          <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-            <LocalVideoTvPlayer name={localVideoName(slide.mediaUrl)} objectFit={videoFit} />
-          </div>
-        </div>
-      );
+    const player = isLocalVideoRef(slide.mediaUrl) ? (
+      <LocalVideoTvPlayer name={localVideoName(slide.mediaUrl)} objectFit={videoFit} />
+    ) : (
+      <UploadedVideoTvPlayer src={slide.mediaUrl} objectFit={videoFit} />
+    );
+    if (fullscreen) {
+      return <div className="absolute inset-0 bg-black">{player}</div>;
     }
     return (
       <div className="relative flex-1 min-h-0 w-full flex flex-col">
         <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-          <UploadedVideoTvPlayer src={slide.mediaUrl} objectFit={videoFit} />
+          {player}
         </div>
       </div>
     );

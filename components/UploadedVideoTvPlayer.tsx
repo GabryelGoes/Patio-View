@@ -17,7 +17,10 @@ function objectFitClass(fit: UploadedVideoTvPlayerProps['objectFit']): string {
   }
 }
 
-/** Vídeo enviado na TV: autoplay mutado + retentativas + tentativa de liberar som. */
+/**
+ * Vídeo na TV: autoplay mutado (sempre permitido pelo Chrome) e à prova de congelamento.
+ * O som só é liberado após um toque/clique na tela (gesto do usuário), sem nunca pausar o vídeo.
+ */
 const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
   src,
   className = 'absolute inset-0 h-full w-full',
@@ -25,50 +28,62 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const attemptPlay = useCallback(async () => {
+  /** Garante que o vídeo está tocando; se preciso, volta a mutar (mudo sempre toca). */
+  const ensurePlaying = useCallback(async () => {
     const el = videoRef.current;
     if (!el) return;
-
-    el.muted = true;
+    if (!el.paused && !el.ended) return;
     try {
-      await el.play();
-    } catch {
-      return;
-    }
-
-    try {
-      el.muted = false;
       await el.play();
     } catch {
       el.muted = true;
+      try {
+        await el.play();
+      } catch {
+        /* o watchdog tenta de novo */
+      }
     }
   }, []);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    el.muted = true;
 
-    const onReady = () => void attemptPlay();
+    const onReady = () => void ensurePlaying();
+    const onPause = () => void ensurePlaying();
     el.addEventListener('canplay', onReady);
     el.addEventListener('loadeddata', onReady);
+    el.addEventListener('pause', onPause);
 
-    const timers = [0, 120, 400, 1000, 2500, 5000].map((ms) =>
-      window.setTimeout(() => void attemptPlay(), ms)
+    const timers = [0, 150, 500, 1500, 4000].map((ms) =>
+      window.setTimeout(() => void ensurePlaying(), ms)
     );
-
-    const onEnded = () => {
-      el.currentTime = 0;
-      void attemptPlay();
-    };
-    el.addEventListener('ended', onEnded);
+    const watchdog = window.setInterval(() => void ensurePlaying(), 3000);
 
     return () => {
       el.removeEventListener('canplay', onReady);
       el.removeEventListener('loadeddata', onReady);
-      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('pause', onPause);
       timers.forEach(clearTimeout);
+      window.clearInterval(watchdog);
     };
-  }, [src, attemptPlay]);
+  }, [src, ensurePlaying]);
+
+  /** Som ao primeiro toque/clique na TV, sem risco de travar a reprodução. */
+  useEffect(() => {
+    const enableSound = () => {
+      const el = videoRef.current;
+      if (!el) return;
+      el.muted = false;
+      el.play().catch(() => {
+        el.muted = true;
+        el.play().catch(() => {});
+      });
+    };
+    window.addEventListener('pointerdown', enableSound);
+    return () => window.removeEventListener('pointerdown', enableSound);
+  }, []);
 
   return (
     <video

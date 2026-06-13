@@ -329,6 +329,13 @@ const App: React.FC = () => {
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
   const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
 
+  /** Mídia (imagem/vídeo) em tela cheia: cobre todo o painel, sem cabeçalho/bordas. */
+  const isFullscreenMedia =
+    !!currentSlide &&
+    !!currentSlide.mediaUrl &&
+    (currentSlide.slideType === 'image' || currentSlide.slideType === 'video') &&
+    currentSlide.mediaFullscreen === true;
+
   const lastSlideSoundIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isSlidePage) {
@@ -409,6 +416,11 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
+      {isFullscreenMedia && currentSlide && (
+        <div className="fixed inset-0 z-[60] bg-black">
+          <TvSlidePage slide={currentSlide} fullscreen />
+        </div>
+      )}
       {chimeBanner && (
         <div className="pointer-events-none fixed inset-0 z-[500] flex items-center justify-center bg-black/60 p-4 sm:p-8">
           <TvChimeBannerCard
@@ -542,7 +554,9 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {isSlidePage && currentSlide ? (
+      {isSlidePage && currentSlide && isFullscreenMedia ? (
+        <main className="flex-1 min-h-0" />
+      ) : isSlidePage && currentSlide ? (
         <main className="flex-1 flex flex-col min-h-0">
           <TvSlidePage slide={currentSlide} />
         </main>
