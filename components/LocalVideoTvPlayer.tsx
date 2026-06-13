@@ -12,6 +12,8 @@ import {
 type LocalVideoTvPlayerProps = {
   /** Nome do arquivo na pasta local (ex.: "promo.mp4"). */
   name: string;
+  /** Encaixe do vídeo na área da TV. */
+  objectFit?: 'contain' | 'cover' | 'fill';
 };
 
 type Status = 'loading' | 'ready' | 'unsupported' | 'no-folder' | 'no-permission' | 'not-found';
@@ -37,7 +39,7 @@ const Notice: React.FC<{ title: string; subtitle?: string; action?: { label: str
 );
 
 /** Toca um vídeo lido de uma pasta local do PC (sem upload). */
-const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name }) => {
+const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit }) => {
   const folder = useVideoFolder();
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('loading');
@@ -95,7 +97,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name }) => {
   useEffect(() => () => revoke(), []);
 
   if (status === 'ready' && url) {
-    return <UploadedVideoTvPlayer src={url} />;
+    return <UploadedVideoTvPlayer src={url} objectFit={objectFit} />;
   }
 
   if (status === 'unsupported') {

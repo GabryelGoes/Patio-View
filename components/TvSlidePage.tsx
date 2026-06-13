@@ -66,11 +66,12 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
         </div>
       );
     }
+    const videoFit = slide.mediaObjectFit ?? 'contain';
     if (isLocalVideoRef(slide.mediaUrl)) {
       return (
         <div className="relative flex-1 min-h-0 w-full flex flex-col">
           <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-            <LocalVideoTvPlayer name={localVideoName(slide.mediaUrl)} />
+            <LocalVideoTvPlayer name={localVideoName(slide.mediaUrl)} objectFit={videoFit} />
           </div>
         </div>
       );
@@ -78,7 +79,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide }) => {
     return (
       <div className="relative flex-1 min-h-0 w-full flex flex-col">
         <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-          <UploadedVideoTvPlayer src={slide.mediaUrl} />
+          <UploadedVideoTvPlayer src={slide.mediaUrl} objectFit={videoFit} />
         </div>
       </div>
     );

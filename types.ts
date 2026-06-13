@@ -49,6 +49,10 @@ export interface TvSlide {
   goalShowValues?: boolean;
   /** Fixar este slide na TV (gestão no app principal). */
   pinImmediate?: boolean;
+  /** Imagem/vídeo preenche toda a área da TV (sem bordas). */
+  mediaFullscreen?: boolean;
+  /** Encaixe da mídia na TV: cover (preencher), contain (inteira) ou fill (esticar). */
+  mediaObjectFit?: 'cover' | 'contain' | 'fill';
 }
 
 export interface TvWeeklyGoal {
