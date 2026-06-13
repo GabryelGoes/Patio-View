@@ -10,6 +10,13 @@ const getEnv = (key: string): string =>
 
 const API_BASE = getEnv('VITE_API_BASE').replace(/\/+$/, '');
 
+/** Token de leitura da TV (deve casar com TV_API_TOKEN no servidor). Opcional. */
+const TV_TOKEN = getEnv('VITE_TV_TOKEN').trim();
+
+/** Headers de autenticação para as chamadas da TV (envia o token se configurado). */
+const tvHeaders = (): Record<string, string> =>
+  TV_TOKEN ? { Authorization: `Bearer ${TV_TOKEN}` } : {};
+
 /** Mapeia status da API (snake_case) para o tipo Stage usado no app (nomes para exibição). */
 const STATUS_TO_STAGE: Record<string, Stage> = {
   AGUARDANDO_AVALIACAO: 'Aguardando Avaliação',
@@ -106,7 +113,7 @@ async function fetchTvPlaylist(): Promise<{
 }> {
   if (!API_BASE) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
   try {
-    const res = await fetch(`${API_BASE}/tv/playlist?scope=patio`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/tv/playlist?scope=patio`, { cache: 'no-store', headers: tvHeaders() });
     if (!res.ok) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
     const data = await res.json();
     const slides = Array.isArray(data.slides)
@@ -144,7 +151,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
     const params = new URLSearchParams();
     params.set('orderType', 'vehicle'); // só veículos no pátio
     const url = `${API_BASE}/service-orders?${params.toString()}`;
-    const [res, tvBundle] = await Promise.all([fetch(url), fetchTvPlaylist()]);
+    const [res, tvBundle] = await Promise.all([fetch(url, { headers: tvHeaders() }), fetchTvPlaylist()]);
 
     if (!res.ok) {
       const text = await res.text();
