@@ -12,6 +12,49 @@ import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
 import { playSlideAlertSound } from './utils/slideAlertSound.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
+import {
+  useVideoFolder,
+  chooseFolder,
+  ensureGranted,
+  supportsLocalVideo,
+} from './utils/localVideoFolder.ts';
+
+/** Botão para configurar/autorizar a pasta de vídeos locais da TV. */
+const VideoFolderButton: React.FC = () => {
+  const folder = useVideoFolder();
+  if (!supportsLocalVideo()) return null;
+
+  const ok = folder.hasFolder && folder.granted;
+  const needsPermission = folder.hasFolder && !folder.granted;
+  const title = ok
+    ? 'Pasta de vídeos configurada (clique para trocar)'
+    : needsPermission
+      ? 'Clique para permitir o acesso à pasta de vídeos'
+      : 'Configurar pasta de vídeos locais';
+
+  const onClick = () => {
+    if (needsPermission) void ensureGranted();
+    else void chooseFolder();
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
+        ok
+          ? 'bg-zinc-800 text-emerald-400 border-zinc-700'
+          : needsPermission
+            ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 animate-pulse'
+            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+        <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+      </svg>
+    </button>
+  );
+};
 
 const STAGE_PRIORITY: Record<string, number> = {
   'Garantia': 1,
@@ -446,6 +489,7 @@ const App: React.FC = () => {
           </p>
         </div>
         <div className="flex justify-end items-center gap-4">
+          <VideoFolderButton />
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)} 
             className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
