@@ -1,60 +1,32 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
+import { playVictorySound } from './utils/tvSounds.ts';
 
 interface CelebrationOverlayProps {
   vehicle: Vehicle;
   onComplete: () => void;
   soundEnabled: boolean;
+  durationMs?: number;
 }
 
-const playVictorySound = async (soundEnabled: boolean) => {
-  if (!soundEnabled) return;
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') await ctx.resume();
-    
-    const playTone = (freq: number, startTime: number, duration: number, volume: number, type: OscillatorType = 'triangle') => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    };
-
-    const now = ctx.currentTime;
-    const step = 0.06;
-    playTone(261.63, now, 0.3, 0.2);              // C4
-    playTone(329.63, now + step, 0.3, 0.2);       // E4
-    playTone(392.00, now + step * 2, 0.3, 0.2);   // G4
-    playTone(523.25, now + step * 3, 1.0, 0.3, 'square'); // C5 final
-  } catch (e) { console.warn(e); }
-};
-
-const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({ vehicle, onComplete, soundEnabled }) => {
+const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({ vehicle, onComplete, soundEnabled, durationMs = 7000 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    playVictorySound(soundEnabled);
+    if (soundEnabled) void playVictorySound();
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
       completeTimer = setTimeout(() => onCompleteRef.current(), 1000);
-    }, 7000);
+    }, durationMs);
     return () => {
       clearTimeout(timer);
       if (completeTimer !== null) clearTimeout(completeTimer);
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, durationMs]);
 
   return (
     <div className={`fixed inset-0 z-[100] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>

@@ -1,32 +1,33 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
-import { playGarantiaScreenSound } from './utils/garantiaScreenSound.ts';
+import { playGarantiaSound } from './utils/tvSounds.ts';
 
 interface GarantiaOverlayProps {
   vehicle: Vehicle;
   indexInPage: number;
   onComplete: () => void;
   soundEnabled: boolean;
+  durationMs?: number;
 }
 
-const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, soundEnabled }) => {
+const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, soundEnabled, durationMs = 7000 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (soundEnabled) void playGarantiaScreenSound();
+    if (soundEnabled) void playGarantiaSound();
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
       completeTimer = setTimeout(() => onCompleteRef.current(), 1000);
-    }, 7000);
+    }, durationMs);
     return () => {
       clearTimeout(timer);
       if (completeTimer !== null) clearTimeout(completeTimer);
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, durationMs]);
 
   return (
     <div className={`fixed inset-0 z-[250] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>

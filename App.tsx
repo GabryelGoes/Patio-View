@@ -10,9 +10,11 @@ import PecasDisponiveisOverlay from './PecasDisponiveisOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
 import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
-import { playSlideAlertSound } from './utils/slideAlertSound.ts';
+import { playSlideSound, playStageChangeBeep } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
+import { useTvSettings, setTvSettings } from './config/tvSettings.ts';
+import TvSettingsPanel from './TvSettingsPanel.tsx';
 import {
   useVideoFolder,
   chooseFolder,
@@ -59,56 +61,28 @@ const VideoFolderButton: React.FC = () => {
 
 const STAGE_PRIORITY: Record<string, number> = TV_CONFIG.stagePriority;
 
-const playNotificationSound = async (soundEnabled: boolean, repeat = 1) => {
-  if (!soundEnabled) return;
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') await ctx.resume();
-    
-    const playNote = (freq: number, start: number, duration: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.2, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + duration);
-    };
-
-    let now = ctx.currentTime;
-    for (let i = 0; i < repeat; i++) {
-      playNote(880, now, 0.15); 
-      playNote(1046.5, now + 0.1, 0.2); 
-      now += 0.4;
-    }
-  } catch (e) { console.warn(e); }
+/** Janela padrão de horário comercial (08–12h e 13:30–19h). */
+const isWithinBusinessHours = (): boolean => {
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  return (m >= 480 && m < 720) || (m >= 810 && m < 1140);
 };
 
 const App: React.FC = () => {
   const [data, setData] = useState<WorkshopData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const now = new Date();
-    const m = now.getHours() * 60 + now.getMinutes();
-    // 08:00-12:00 (480-720) & 13:30-19:00 (810-1140)
-    return (m >= 480 && m < 720) || (m >= 810 && m < 1140);
-  });
+  const settings = useTvSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [scheduleOn, setScheduleOn] = useState(() => isWithinBusinessHours());
   const [isEvaluationAlertActive, setIsEvaluationAlertActive] = useState(false);
 
+  /** Som efetivamente ativo agora, conforme o modo escolhido nas configurações. */
+  const soundEnabled =
+    settings.soundMode === 'off' ? false : settings.soundMode === 'always' ? true : scheduleOn;
+
   useEffect(() => {
-    const checkSchedule = () => {
-      const now = new Date();
-      const m = now.getHours() * 60 + now.getMinutes();
-      const shouldBeOn = (m >= 480 && m < 720) || (m >= 810 && m < 1140);
-      setSoundEnabled(shouldBeOn);
-    };
-    const interval = setInterval(checkSchedule, 60000);
+    const interval = setInterval(() => setScheduleOn(isWithinBusinessHours()), 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -198,54 +172,51 @@ const App: React.FC = () => {
         if (index !== -1) {
           setPage(Math.floor(index / CARS_PER_PAGE));
           setActiveHighlightId(nextId);
-          playNotificationSound(soundEnabled);
+          if (soundEnabled && settings.sounds.stageChange) void playStageChangeBeep();
           setTimeout(() => {
             setActiveHighlightId(null);
             setHighlightQueue(prev => prev.slice(1));
-          }, 8000);
+          }, settings.highlightSeconds * 1000);
         } else {
           setHighlightQueue(prev => prev.slice(1));
         }
       }
     }
-  }, [highlightQueue, activeHighlightId, celebrationQueue.length, pecasDisponiveisQueue.length, garantiaQueue.length, data, soundEnabled]);
+  }, [highlightQueue, activeHighlightId, celebrationQueue.length, pecasDisponiveisQueue.length, garantiaQueue.length, data, soundEnabled, settings.sounds.stageChange, settings.highlightSeconds]);
 
   useEffect(() => {
     loadData();
-    /** Atualização periódica do quadro (15s) — reduz invocações na Vercel sem perder fluidez. */
-    const refreshInterval = setInterval(loadData, 15000);
+    /** Atualização periódica do quadro — intervalo configurável (reduz invocações na Vercel). */
+    const refreshInterval = setInterval(loadData, settings.refreshSeconds * 1000);
     return () => clearInterval(refreshInterval);
-  }, [soundEnabled]);
+  }, [soundEnabled, settings.refreshSeconds]);
 
   useEffect(() => {
     let interval: any;
-    if (isEvaluationAlertActive && soundEnabled) {
-      playNotificationSound(soundEnabled, 1);
+    if (isEvaluationAlertActive && soundEnabled && settings.sounds.evaluationAlert) {
+      void playStageChangeBeep(1);
       interval = setInterval(() => {
-        playNotificationSound(soundEnabled, 1);
+        void playStageChangeBeep(1);
       }, 1800);
     }
     return () => { if (interval) clearInterval(interval); };
-  }, [isEvaluationAlertActive, soundEnabled]);
+  }, [isEvaluationAlertActive, soundEnabled, settings.sounds.evaluationAlert]);
 
   useEffect(() => {
+    if (!settings.evaluationAlert.enabled) return;
     const triggerAlert = () => {
       const hasPending = data?.vehicles.some(v => 
         v.stage.toLowerCase().includes('avaliação') && v.stage.toLowerCase().includes('aguardando')
       );
       if (hasPending) {
         setIsEvaluationAlertActive(true);
-        setTimeout(() => setIsEvaluationAlertActive(false), 12000);
+        setTimeout(() => setIsEvaluationAlertActive(false), settings.evaluationAlert.onScreenSeconds * 1000);
       }
     };
 
-    const alertInterval = setInterval(triggerAlert, 30 * 60 * 1000);
-    const checkSync = setInterval(() => {
-      const now = new Date();
-      if (now.getMinutes() % 30 === 0 && now.getSeconds() === 0) triggerAlert();
-    }, 1000);
-    return () => { clearInterval(alertInterval); clearInterval(checkSync); };
-  }, [data]);
+    const alertInterval = setInterval(triggerAlert, settings.evaluationAlert.intervalMinutes * 60 * 1000);
+    return () => { clearInterval(alertInterval); };
+  }, [data, settings.evaluationAlert.enabled, settings.evaluationAlert.intervalMinutes, settings.evaluationAlert.onScreenSeconds]);
 
   useEffect(() => {
     if (isEvaluationAlertActive && data) {
@@ -295,7 +266,7 @@ const App: React.FC = () => {
     const total = vp + sc;
     if (total <= 1) return;
 
-    let ms = 7000;
+    let ms = settings.pageSeconds * 1000;
     if (page >= vp && page < vp + sc && data.tvSlides) {
       const slide = data.tvSlides[page - vp];
       ms = Math.min(120000, Math.max(5000, (slide.durationSeconds || 10) * 1000));
@@ -315,6 +286,7 @@ const App: React.FC = () => {
     activeHighlightId,
     isEvaluationAlertActive,
     isPinnedMode,
+    settings.pageSeconds,
   ]);
 
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
@@ -333,19 +305,19 @@ const App: React.FC = () => {
       lastSlideSoundIdRef.current = null;
       return;
     }
-    if (!currentSlide || currentSlide.playSound !== true || !soundEnabled) return;
+    if (!currentSlide || currentSlide.playSound !== true || !soundEnabled || !settings.sounds.slide) return;
     if (lastSlideSoundIdRef.current === currentSlide.id) return;
     lastSlideSoundIdRef.current = currentSlide.id;
-    void playSlideAlertSound();
-  }, [isSlidePage, currentSlide, soundEnabled]);
+    void playSlideSound();
+  }, [isSlidePage, currentSlide, soundEnabled, settings.sounds.slide]);
 
   const chimeConfigForHook = useMemo(
     () => ({
       ...chimeLive,
-      soundVolume: soundEnabled ? chimeLive.soundVolume : 0.0001,
-      preNotifyPlaySound: soundEnabled && chimeLive.preNotifyPlaySound,
+      soundVolume: soundEnabled && settings.sounds.slide ? chimeLive.soundVolume * settings.masterVolume : 0.0001,
+      preNotifyPlaySound: soundEnabled && settings.sounds.slide && chimeLive.preNotifyPlaySound,
     }),
-    [chimeLive, soundEnabled]
+    [chimeLive, soundEnabled, settings.sounds.slide, settings.masterVolume]
   );
 
   const onTvChimeFire = useCallback(
@@ -407,6 +379,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
+      {settingsOpen && <TvSettingsPanel onClose={() => setSettingsOpen(false)} />}
       {isFullscreenMedia && currentSlide && (
         <div className="fixed inset-0 z-[60] bg-black">
           <TvSlidePage slide={currentSlide} fullscreen />
@@ -441,7 +414,8 @@ const App: React.FC = () => {
             setHighlightQueue(prev => [...prev, finishedId]);
             setCelebrationQueue(prev => prev.slice(1));
           }} 
-          soundEnabled={soundEnabled} 
+          soundEnabled={soundEnabled && settings.sounds.budgetApproved}
+          durationMs={settings.overlaySeconds * 1000}
         />
       )}
 
@@ -454,7 +428,8 @@ const App: React.FC = () => {
             setHighlightQueue(prev => [...prev, finishedId]);
             setPecasDisponiveisQueue(prev => prev.slice(1));
           }}
-          soundEnabled={soundEnabled}
+          soundEnabled={soundEnabled && settings.sounds.pecasDisponiveis}
+          durationMs={settings.overlaySeconds * 1000}
         />
       )}
       
@@ -468,7 +443,8 @@ const App: React.FC = () => {
             setHighlightQueue(prev => [...prev, finishedId]);
             setGarantiaQueue(prev => prev.slice(1));
           }} 
-          soundEnabled={soundEnabled} 
+          soundEnabled={soundEnabled && settings.sounds.garantia}
+          durationMs={settings.overlaySeconds * 1000}
         />
       )}
 
@@ -502,8 +478,18 @@ const App: React.FC = () => {
             </svg>
           </button>
           <VideoFolderButton />
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Configurações da TV"
+            className="w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white"
+          >
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+            </svg>
+          </button>
           <button 
-            onClick={() => setSoundEnabled(!soundEnabled)} 
+            onClick={() => setTvSettings({ ...settings, soundMode: settings.soundMode === 'off' ? 'schedule' : 'off' })} 
+            title={soundEnabled ? 'Silenciar som da TV' : 'Ativar som da TV'}
             className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
               soundEnabled 
                 ? TV_CONFIG.soundOnClass 
