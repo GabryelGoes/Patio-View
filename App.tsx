@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WorkshopData, Stage, Vehicle } from './types.ts';
-import { fetchWorkshopData } from './services/patioApiService.ts';
+import { fetchWorkshopData } from './services/tvApiService.ts';
+import { TV_CONFIG } from './config/tvMode.ts';
 import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
@@ -56,21 +57,7 @@ const VideoFolderButton: React.FC = () => {
   );
 };
 
-const STAGE_PRIORITY: Record<string, number> = {
-  'Garantia': 1,
-  'Aguardando Avaliação': 2,
-  'Em Avaliação': 3,
-  'Avaliação Técnica': 4,
-  'Aguardando Aprovação': 5,
-  'Aprovado': 6,
-  'Orçamento Aprovado': 7,
-  'Aguardando Peças': 8,
-  'Peças Disponíveis': 9,
-  'Em Serviço': 10,
-  'Fase de Teste': 11,
-  'Finalizado': 12,
-  'Orçamento Não Aprovado': 13
-};
+const STAGE_PRIORITY: Record<string, number> = TV_CONFIG.stagePriority;
 
 const playNotificationSound = async (soundEnabled: boolean, repeat = 1) => {
   if (!soundEnabled) return;
@@ -124,6 +111,10 @@ const App: React.FC = () => {
     const interval = setInterval(checkSchedule, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    document.title = TV_CONFIG.documentTitle;
+  }, []);
   
   const [celebrationQueue, setCelebrationQueue] = useState<Vehicle[]>([]);
   const [pecasDisponiveisQueue, setPecasDisponiveisQueue] = useState<Vehicle[]>([]);
@@ -165,7 +156,7 @@ const App: React.FC = () => {
         if (prevStage && prevStage !== currentStage) {
           if (currentStage === 'Orçamento Aprovado') {
             newlyApproved.push(vehicle);
-          } else if (currentStage === 'Peças Disponíveis') {
+          } else if (TV_CONFIG.showPecasDisponiveisOverlay && currentStage === 'Peças Disponíveis') {
             newlyPecasDisponiveis.push(vehicle);
           } else if (currentStage === 'Garantia') {
             const indexInPage = globalIndex % CARS_PER_PAGE;
@@ -483,16 +474,16 @@ const App: React.FC = () => {
 
       <header className="grid grid-cols-3 items-end mb-4 px-4 h-14">
         <h1 className="font-black italic text-3xl">
-          <span className="text-yellow-400">REI DO ABS</span>
-          <span className="text-white/20 ml-3 text-2xl uppercase">PÁTIO</span>
+          <span className={TV_CONFIG.brandAccentClass}>REI DO ABS</span>
+          <span className="text-white/20 ml-3 text-2xl uppercase">{TV_CONFIG.sectionLabel}</span>
         </h1>
         <div className="text-center pb-1 flex flex-col items-center">
-          <p className="text-[10px] font-black text-yellow-500/50 tracking-[0.2em] uppercase mb-0.5">
-            {data?.vehicles.length || 0} VEÍCULOS NO PÁTIO
+          <p className={`text-[10px] font-black ${TV_CONFIG.countClass} tracking-[0.2em] uppercase mb-0.5`}>
+            {TV_CONFIG.countText(data?.vehicles.length || 0)}
           </p>
           <p className="text-[11px] font-bold text-zinc-500 tracking-[0.25em] uppercase leading-none">
             {isEvaluationAlertActive 
-              ? <span className="text-yellow-400 animate-pulse">ALERTA: AVALIAÇÃO PENDENTE</span> 
+              ? <span className={`${TV_CONFIG.alertTextClass} animate-pulse`}>ALERTA: AVALIAÇÃO PENDENTE</span> 
               : isSlidePage
                 ? (currentSlide?.pinImmediate
                   ? <span className="text-amber-400/95">TV — CONTEÚDO FIXO</span>
@@ -506,7 +497,7 @@ const App: React.FC = () => {
             onClick={() => setSoundEnabled(!soundEnabled)} 
             className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
               soundEnabled 
-                ? 'bg-zinc-800 text-yellow-400 border-zinc-700 shadow-[0_0_15px_rgba(250,204,21,0.2)]' 
+                ? TV_CONFIG.soundOnClass 
                 : 'bg-red-500/10 text-red-500 border-red-500/30'
             }`}
           >
@@ -545,11 +536,11 @@ const App: React.FC = () => {
           <div className="w-full text-center">Conteúdo da TV</div>
         ) : (
           <>
-            <div className="w-[22%]">Modelo / Placa</div>
+            <div className="w-[22%]">{TV_CONFIG.columns.first}</div>
             <div className="w-[16%] pl-6">Cliente</div>
             <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
-            <div className="w-[14%] pl-6 text-center">Entrega</div>
-            <div className="w-[14%] pl-6">Mecânico</div>
+            <div className="w-[14%] pl-6 text-center">{TV_CONFIG.columns.fourth}</div>
+            <div className="w-[14%] pl-6">{TV_CONFIG.columns.fifth}</div>
           </>
         )}
       </div>
@@ -572,7 +563,7 @@ const App: React.FC = () => {
             />
           ))}
           {Array.from({ length: CARS_PER_PAGE - visibleVehicles.length }).map((_, i) => (
-            <div key={i} className="h-full border-2 border-dashed border-white/5 bg-white/[0.02] rounded-[24px] flex items-center justify-center text-white/10 font-black text-2xl uppercase italic">Box Livre</div>
+            <div key={i} className={`h-full border-2 border-dashed ${TV_CONFIG.emptyBox.className} rounded-[24px] flex items-center justify-center font-black text-2xl uppercase italic`}>{TV_CONFIG.emptyBox.text}</div>
           ))}
         </main>
       )}

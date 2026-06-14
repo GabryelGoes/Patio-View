@@ -11,8 +11,11 @@ export type Stage =
   | 'Em Serviço' 
   | 'Aguardando Peças'
   | 'Peças Disponíveis'
+  | 'Envio Conserto'
+  | 'Chegada Conserto'
   | 'Fase de Teste' 
   | 'Finalizado' 
+  | 'Pronto pra Retirada'
   | 'Garantia' 
   | 'Orçamento Não Aprovado';
 
@@ -28,6 +31,12 @@ export interface Vehicle {
   lastActivity: string;
   /** Etiqueta de garantia (vem da API): persiste em qualquer etapa até remover no modal do sistema principal. Na TV, o aro vermelho só aparece quando garantiaTag é true e o veículo NÃO está na etapa Garantia. */
   garantiaTag?: boolean;
+  /** Compartimento da bancada do laboratório (1..24). NULL/undefined = fora da bancada. */
+  benchSlot?: number | null;
+  /** Tipo de produto do laboratório (ex.: "Módulo completo", "Módulo hidráulico", "Pinça de freio"). */
+  productType?: string;
+  /** Produto encaminhado da oficina (pátio) — recebe aro de destaque âmbar na TV. */
+  fromWorkshop?: boolean;
 }
 
 export type TvSlideType = 'notice' | 'image' | 'video' | 'goal' | 'alert';
