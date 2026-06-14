@@ -44,6 +44,15 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
 const selectCls =
   'rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1.5 text-xs font-bold text-white outline-none focus:border-emerald-300';
 
+const TimeInput: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
+  <input
+    type="time"
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    className="rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1 text-xs font-bold text-white outline-none focus:border-emerald-300 [color-scheme:dark]"
+  />
+);
+
 const NumberSelect: React.FC<{ value: number; options: number[]; unit: string; onChange: (v: number) => void }> = ({
   value,
   options,
@@ -93,6 +102,8 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
     setTvSettings({ ...settings, soundChoices: { ...settings.soundChoices, [k]: id } });
   const patchEval = (p: Partial<TvSettings['evaluationAlert']>) =>
     setTvSettings({ ...settings, evaluationAlert: { ...settings.evaluationAlert, ...p } });
+  const patchHours = (p: Partial<TvSettings['businessHours']>) =>
+    setTvSettings({ ...settings, businessHours: { ...settings.businessHours, ...p } });
 
   const muted = settings.soundMode === 'off';
 
@@ -160,6 +171,25 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
                 />
                 <TestButton onClick={() => void playPreset('bell')} />
               </Row>
+              {settings.soundMode === 'schedule' && (
+                <>
+                  <Row label="Horário comercial (manhã)">
+                    <TimeInput value={settings.businessHours.period1Start} onChange={(v) => patchHours({ period1Start: v })} />
+                    <span className="text-xs font-bold text-zinc-500">às</span>
+                    <TimeInput value={settings.businessHours.period1End} onChange={(v) => patchHours({ period1End: v })} />
+                  </Row>
+                  <Row label="Segundo período (tarde)">
+                    <Toggle checked={settings.businessHours.period2Enabled} onChange={(v) => patchHours({ period2Enabled: v })} />
+                  </Row>
+                  {settings.businessHours.period2Enabled && (
+                    <Row label="Horário comercial (tarde)">
+                      <TimeInput value={settings.businessHours.period2Start} onChange={(v) => patchHours({ period2Start: v })} />
+                      <span className="text-xs font-bold text-zinc-500">às</span>
+                      <TimeInput value={settings.businessHours.period2End} onChange={(v) => patchHours({ period2End: v })} />
+                    </Row>
+                  )}
+                </>
+              )}
             </Section>
 
             <Section title="Alerta de avaliação">

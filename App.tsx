@@ -13,7 +13,7 @@ import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
 import { playEventSound } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
-import { useTvSettings, setTvSettings } from './config/tvSettings.ts';
+import { useTvSettings, setTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
 import {
   useVideoFolder,
@@ -61,13 +61,6 @@ const VideoFolderButton: React.FC = () => {
 
 const STAGE_PRIORITY: Record<string, number> = TV_CONFIG.stagePriority;
 
-/** Janela padrão de horário comercial (08–12h e 13:30–19h). */
-const isWithinBusinessHours = (): boolean => {
-  const now = new Date();
-  const m = now.getHours() * 60 + now.getMinutes();
-  return (m >= 480 && m < 720) || (m >= 810 && m < 1140);
-};
-
 const App: React.FC = () => {
   const [data, setData] = useState<WorkshopData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,9 +75,10 @@ const App: React.FC = () => {
     settings.soundMode === 'off' ? false : settings.soundMode === 'always' ? true : scheduleOn;
 
   useEffect(() => {
-    const interval = setInterval(() => setScheduleOn(isWithinBusinessHours()), 60000);
+    setScheduleOn(isWithinBusinessHours());
+    const interval = setInterval(() => setScheduleOn(isWithinBusinessHours()), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [settings.businessHours]);
 
   useEffect(() => {
     document.title = TV_CONFIG.documentTitle;

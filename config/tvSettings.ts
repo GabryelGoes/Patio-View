@@ -37,6 +37,14 @@ export interface TvSettings {
   masterVolume: number;
   /** Quando os sons podem tocar. */
   soundMode: SoundMode;
+  /** Janelas do "horário comercial" (usado quando soundMode = 'schedule'). */
+  businessHours: {
+    period1Start: string;
+    period1End: string;
+    period2Enabled: boolean;
+    period2Start: string;
+    period2End: string;
+  };
   sounds: TvSoundToggles;
   /** Toque escolhido para cada evento. */
   soundChoices: TvSoundChoices;
@@ -60,6 +68,13 @@ export interface TvSettings {
 export const DEFAULT_TV_SETTINGS: TvSettings = {
   masterVolume: 1,
   soundMode: 'schedule',
+  businessHours: {
+    period1Start: '08:00',
+    period1End: '12:00',
+    period2Enabled: true,
+    period2Start: '13:30',
+    period2End: '19:00',
+  },
   sounds: {
     stageChange: true,
     evaluationAlert: true,
@@ -99,11 +114,27 @@ function pickString(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 
+/** Converte "HH:MM" em minutos do dia; null se inválido. */
+export function timeToMinutes(value: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** Valida um horário "HH:MM", devolvendo o padrão se inválido. */
+function pickTime(value: unknown, fallback: string): string {
+  return typeof value === 'string' && timeToMinutes(value) !== null ? value : fallback;
+}
+
 function mergeWithDefaults(raw: any): TvSettings {
   const d = DEFAULT_TV_SETTINGS;
   if (!raw || typeof raw !== 'object')
     return {
       ...d,
+      businessHours: { ...d.businessHours },
       sounds: { ...d.sounds },
       soundChoices: { ...d.soundChoices },
       evaluationAlert: { ...d.evaluationAlert },
@@ -115,6 +146,13 @@ function mergeWithDefaults(raw: any): TvSettings {
   return {
     masterVolume: clampNumber(raw.masterVolume, 0, 1, d.masterVolume),
     soundMode,
+    businessHours: {
+      period1Start: pickTime(raw.businessHours?.period1Start, d.businessHours.period1Start),
+      period1End: pickTime(raw.businessHours?.period1End, d.businessHours.period1End),
+      period2Enabled: raw.businessHours?.period2Enabled ?? d.businessHours.period2Enabled,
+      period2Start: pickTime(raw.businessHours?.period2Start, d.businessHours.period2Start),
+      period2End: pickTime(raw.businessHours?.period2End, d.businessHours.period2End),
+    },
     sounds: {
       stageChange: raw.sounds?.stageChange ?? d.sounds.stageChange,
       evaluationAlert: raw.sounds?.evaluationAlert ?? d.sounds.evaluationAlert,
@@ -181,6 +219,21 @@ export function resetTvSettings(): void {
 /** Volume geral atual (0..1) — lido pelas funções de som. */
 export function getMasterVolume(): number {
   return current.masterVolume;
+}
+
+/** Indica se o horário atual está dentro das janelas comerciais configuradas. */
+export function isWithinBusinessHours(now: Date = new Date()): boolean {
+  const bh = current.businessHours;
+  const m = now.getHours() * 60 + now.getMinutes();
+  const p1s = timeToMinutes(bh.period1Start);
+  const p1e = timeToMinutes(bh.period1End);
+  let inside = p1s !== null && p1e !== null && m >= p1s && m < p1e;
+  if (!inside && bh.period2Enabled) {
+    const p2s = timeToMinutes(bh.period2Start);
+    const p2e = timeToMinutes(bh.period2End);
+    inside = p2s !== null && p2e !== null && m >= p2s && m < p2e;
+  }
+  return inside;
 }
 
 function subscribe(listener: () => void): () => void {
