@@ -34,7 +34,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
   <button
     type="button"
     onClick={() => onChange(!checked)}
-    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-emerald-300' : 'bg-zinc-600'}`}
+    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#009c3b]' : 'bg-zinc-600'}`}
     aria-pressed={checked}
   >
     <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
@@ -42,14 +42,14 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
 );
 
 const selectCls =
-  'rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1.5 text-xs font-bold text-white outline-none focus:border-emerald-300';
+  'rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1.5 text-xs font-bold text-white outline-none focus:border-[#00c247]';
 
 const TimeInput: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
   <input
     type="time"
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1 text-xs font-bold text-white outline-none focus:border-emerald-300 [color-scheme:dark]"
+    className="rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-1 text-xs font-bold text-white outline-none focus:border-[#00c247] [color-scheme:dark]"
   />
 );
 
@@ -70,7 +70,7 @@ const NumberSelect: React.FC<{ value: number; options: number[]; unit: string; o
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="rounded-2xl border border-zinc-700/70 bg-zinc-900/60 p-3">
-    <h3 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300">{title}</h3>
+    <h3 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-[#00c247]">{title}</h3>
     <div className="flex flex-col gap-2">{children}</div>
   </section>
 );
@@ -152,7 +152,7 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
                       type="button"
                       onClick={() => patch({ soundMode: m.value })}
                       className={`px-3 py-1.5 text-xs font-bold transition-colors ${
-                        settings.soundMode === m.value ? 'bg-emerald-300 text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                        settings.soundMode === m.value ? 'bg-[#009c3b] text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                       }`}
                     >
                       {m.label}
@@ -167,7 +167,7 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
                   max={100}
                   value={Math.round(settings.masterVolume * 100)}
                   onChange={(e) => patch({ masterVolume: Number(e.target.value) / 100 })}
-                  className="h-2 w-36 cursor-pointer accent-emerald-300"
+                  className="h-2 w-36 cursor-pointer accent-[#009c3b]"
                 />
                 <TestButton onClick={() => void playPreset('bell')} />
               </Row>
@@ -242,7 +242,7 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
             Restaurar padrões
           </button>
           <span className="hidden text-xs text-zinc-500 sm:block">▶ = ouvir prévia · padrão {DEFAULT_TV_SETTINGS.refreshSeconds}s / 30min</span>
-          <button type="button" onClick={onClose} className="rounded-xl bg-emerald-300 px-5 py-2 text-sm font-black text-black hover:bg-emerald-200">
+          <button type="button" onClick={onClose} className="rounded-xl bg-[#009c3b] px-5 py-2 text-sm font-black text-white hover:bg-[#00b84a]">
             Concluído
           </button>
         </footer>
