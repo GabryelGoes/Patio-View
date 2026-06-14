@@ -26,12 +26,20 @@ export interface TvSoundToggles {
   slide: boolean;
 }
 
+/** Cada evento sonoro da TV (mesmas chaves dos toggles). */
+export type TvSoundEvent = keyof TvSoundToggles;
+
+/** Toque (preset) escolhido para cada evento. */
+export type TvSoundChoices = Record<TvSoundEvent, string>;
+
 export interface TvSettings {
   /** Volume geral de todos os sons gerados pela TV (0..1). */
   masterVolume: number;
   /** Quando os sons podem tocar. */
   soundMode: SoundMode;
   sounds: TvSoundToggles;
+  /** Toque escolhido para cada evento. */
+  soundChoices: TvSoundChoices;
   evaluationAlert: {
     enabled: boolean;
     /** A cada quantos minutos relembrar carros aguardando avaliação. */
@@ -60,6 +68,14 @@ export const DEFAULT_TV_SETTINGS: TvSettings = {
     pecasDisponiveis: true,
     slide: true,
   },
+  soundChoices: {
+    stageChange: 'alert',
+    evaluationAlert: 'alert',
+    budgetApproved: 'classic',
+    garantia: 'arp',
+    pecasDisponiveis: 'classic',
+    slide: 'ping',
+  },
   evaluationAlert: {
     enabled: true,
     intervalMinutes: 30,
@@ -79,9 +95,19 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
   return Math.min(max, Math.max(min, n));
 }
 
+function pickString(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.length > 0 ? value : fallback;
+}
+
 function mergeWithDefaults(raw: any): TvSettings {
   const d = DEFAULT_TV_SETTINGS;
-  if (!raw || typeof raw !== 'object') return { ...d, sounds: { ...d.sounds }, evaluationAlert: { ...d.evaluationAlert } };
+  if (!raw || typeof raw !== 'object')
+    return {
+      ...d,
+      sounds: { ...d.sounds },
+      soundChoices: { ...d.soundChoices },
+      evaluationAlert: { ...d.evaluationAlert },
+    };
   const soundMode: SoundMode =
     raw.soundMode === 'always' || raw.soundMode === 'off' || raw.soundMode === 'schedule'
       ? raw.soundMode
@@ -96,6 +122,14 @@ function mergeWithDefaults(raw: any): TvSettings {
       garantia: raw.sounds?.garantia ?? d.sounds.garantia,
       pecasDisponiveis: raw.sounds?.pecasDisponiveis ?? d.sounds.pecasDisponiveis,
       slide: raw.sounds?.slide ?? d.sounds.slide,
+    },
+    soundChoices: {
+      stageChange: pickString(raw.soundChoices?.stageChange, d.soundChoices.stageChange),
+      evaluationAlert: pickString(raw.soundChoices?.evaluationAlert, d.soundChoices.evaluationAlert),
+      budgetApproved: pickString(raw.soundChoices?.budgetApproved, d.soundChoices.budgetApproved),
+      garantia: pickString(raw.soundChoices?.garantia, d.soundChoices.garantia),
+      pecasDisponiveis: pickString(raw.soundChoices?.pecasDisponiveis, d.soundChoices.pecasDisponiveis),
+      slide: pickString(raw.soundChoices?.slide, d.soundChoices.slide),
     },
     evaluationAlert: {
       enabled: raw.evaluationAlert?.enabled ?? d.evaluationAlert.enabled,

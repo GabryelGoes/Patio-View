@@ -1,12 +1,13 @@
 /**
- * Sons da TV centralizados (Web Audio API), todos respeitando o volume geral
- * definido nas Configurações da TV (config/tvSettings → getMasterVolume).
+ * Biblioteca de toques da TV (Web Audio API).
  *
- * Reunir aqui permite: 1) controlar o volume num só lugar; 2) o painel de
- * configurações tocar uma prévia de cada som ("Testar").
+ * Cada "toque" é um preset com estilo próprio. O usuário escolhe, nas
+ * Configurações da TV, qual toque toca em cada evento (orçamento aprovado,
+ * garantia, peças, mudança de etapa, alerta de avaliação, avisos/slides).
+ * Todos respeitam o volume geral (config/tvSettings → getMasterVolume).
  */
 
-import { getMasterVolume } from '../config/tvSettings';
+import { getMasterVolume, getTvSettings, type TvSoundEvent } from '../config/tvSettings';
 
 function createCtx(): AudioContext | null {
   try {
@@ -18,171 +19,188 @@ function createCtx(): AudioContext | null {
   }
 }
 
-/** Volume efetivo (peak * volume geral). Abaixo de ~0 não toca. */
-function vol(peak: number): number {
-  return Math.max(0, peak * getMasterVolume());
+function note(
+  ctx: AudioContext,
+  type: OscillatorType,
+  freq: number,
+  start: number,
+  duration: number,
+  peak: number
+): void {
+  if (peak <= 0.0002) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.03);
 }
 
-/** Bip curto de "mudança de etapa" / alerta. */
-export async function playStageChangeBeep(repeat = 1): Promise<void> {
-  const v = vol(0.2);
+/** Notas (Hz) usadas pelos presets. */
+const C4 = 261.63,
+  E4 = 329.63,
+  G4 = 392.0,
+  C5 = 523.25,
+  D5 = 587.33,
+  E5 = 659.25,
+  G5 = 783.99,
+  A5 = 880.0,
+  B5 = 987.77,
+  C6 = 1046.5,
+  D6 = 1174.66,
+  E6 = 1318.51,
+  G6 = 1567.98;
+
+export interface SoundPreset {
+  id: string;
+  label: string;
+  render: (ctx: AudioContext, now: number, v: number) => void;
+}
+
+export const SOUND_PRESETS: SoundPreset[] = [
+  {
+    id: 'classic',
+    label: 'Fanfarra clássica',
+    render: (ctx, n, v) => {
+      const s = 0.06;
+      note(ctx, 'triangle', C4, n, 0.3, 0.2 * v);
+      note(ctx, 'triangle', E4, n + s, 0.3, 0.2 * v);
+      note(ctx, 'triangle', G4, n + s * 2, 0.3, 0.2 * v);
+      note(ctx, 'square', C5, n + s * 3, 1.0, 0.3 * v);
+    },
+  },
+  {
+    id: 'bell',
+    label: 'Sino',
+    render: (ctx, n, v) => {
+      note(ctx, 'sine', C6, n, 1.6, 0.18 * v);
+      note(ctx, 'sine', G6, n, 1.4, 0.06 * v);
+      note(ctx, 'sine', G5, n + 0.25, 1.5, 0.1 * v);
+    },
+  },
+  {
+    id: 'marimba',
+    label: 'Marimba',
+    render: (ctx, n, v) => {
+      const seq = [C5, E5, G5, C6];
+      seq.forEach((f, i) => note(ctx, 'triangle', f, n + i * 0.11, 0.28, 0.22 * v));
+    },
+  },
+  {
+    id: 'arp',
+    label: 'Arpejo suave',
+    render: (ctx, n, v) => {
+      note(ctx, 'sine', C5, n, 0.95, 0.12 * v);
+      note(ctx, 'sine', E5, n + 0.14, 0.9, 0.1 * v);
+      note(ctx, 'sine', G5, n + 0.28, 0.85, 0.085 * v);
+      note(ctx, 'sine', C6, n + 0.44, 1.0, 0.07 * v);
+    },
+  },
+  {
+    id: 'ping',
+    label: 'Cristal (ping)',
+    render: (ctx, n, v) => {
+      note(ctx, 'sine', G5, n, 0.14, 0.12 * v);
+      note(ctx, 'sine', B5, n + 0.055, 0.12, 0.1 * v);
+      note(ctx, 'sine', D6, n + 0.11, 0.1, 0.08 * v);
+    },
+  },
+  {
+    id: 'game',
+    label: 'Game retrô',
+    render: (ctx, n, v) => {
+      const seq = [C5, E5, G5, C6];
+      seq.forEach((f, i) => note(ctx, 'square', f, n + i * 0.08, 0.12, 0.14 * v));
+    },
+  },
+  {
+    id: 'fanfare',
+    label: 'Triunfal',
+    render: (ctx, n, v) => {
+      note(ctx, 'sawtooth', G4, n, 0.5, 0.1 * v);
+      note(ctx, 'sawtooth', C5, n + 0.12, 0.5, 0.1 * v);
+      note(ctx, 'sawtooth', E5, n + 0.24, 0.9, 0.12 * v);
+      note(ctx, 'sawtooth', G5, n + 0.4, 1.0, 0.12 * v);
+    },
+  },
+  {
+    id: 'alert',
+    label: 'Alerta duplo',
+    render: (ctx, n, v) => {
+      note(ctx, 'square', A5, n, 0.15, 0.16 * v);
+      note(ctx, 'square', C6, n + 0.18, 0.22, 0.16 * v);
+    },
+  },
+  {
+    id: 'doorbell',
+    label: 'Campainha',
+    render: (ctx, n, v) => {
+      note(ctx, 'sine', E5, n, 0.6, 0.2 * v);
+      note(ctx, 'sine', C5, n + 0.45, 1.1, 0.2 * v);
+    },
+  },
+  {
+    id: 'magic',
+    label: 'Mágico',
+    render: (ctx, n, v) => {
+      const seq = [C5, D5, E5, G5, A5, C6];
+      seq.forEach((f, i) => note(ctx, 'sine', f, n + i * 0.05, 0.4, 0.1 * v));
+      note(ctx, 'sine', E6, n + 0.32, 0.6, 0.07 * v);
+    },
+  },
+  {
+    id: 'trumpet',
+    label: 'Corneta',
+    render: (ctx, n, v) => {
+      note(ctx, 'sawtooth', G4, n, 0.2, 0.13 * v);
+      note(ctx, 'sawtooth', G4, n + 0.22, 0.2, 0.13 * v);
+      note(ctx, 'sawtooth', C5, n + 0.44, 0.55, 0.15 * v);
+    },
+  },
+  {
+    id: 'soft',
+    label: 'Suave',
+    render: (ctx, n, v) => {
+      note(ctx, 'sine', A5, n, 0.3, 0.12 * v);
+      note(ctx, 'sine', E6, n + 0.16, 0.5, 0.1 * v);
+    },
+  },
+  {
+    id: 'digital',
+    label: 'Digital',
+    render: (ctx, n, v) => {
+      note(ctx, 'triangle', G6, n, 0.1, 0.12 * v);
+      note(ctx, 'triangle', 2093.0, n + 0.12, 0.14, 0.1 * v);
+    },
+  },
+];
+
+const PRESET_MAP: Record<string, SoundPreset> = Object.fromEntries(SOUND_PRESETS.map((p) => [p.id, p]));
+
+export const DEFAULT_PRESET_ID = 'classic';
+
+/** Toca um toque específico pelo id (respeita o volume geral). */
+export async function playPreset(id: string): Promise<void> {
+  const v = getMasterVolume();
   if (v <= 0.0005) return;
+  const preset = PRESET_MAP[id] ?? PRESET_MAP[DEFAULT_PRESET_ID];
   const ctx = createCtx();
   if (!ctx) return;
   try {
     if (ctx.state === 'suspended') await ctx.resume();
-    const playNote = (freq: number, start: number, duration: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(v, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + duration);
-    };
-    let now = ctx.currentTime;
-    for (let i = 0; i < repeat; i++) {
-      playNote(880, now, 0.15);
-      playNote(1046.5, now + 0.1, 0.2);
-      now += 0.4;
-    }
+    preset.render(ctx, ctx.currentTime, v);
   } catch (e) {
     console.warn(e);
   }
 }
 
-/** Fanfarra de vitória — usada em "Orçamento aprovado" e "Peças disponíveis". */
-export async function playVictorySound(): Promise<void> {
-  const master = getMasterVolume();
-  if (master <= 0.0005) return;
-  const ctx = createCtx();
-  if (!ctx) return;
-  try {
-    if (ctx.state === 'suspended') await ctx.resume();
-    const playTone = (
-      freq: number,
-      startTime: number,
-      duration: number,
-      volume: number,
-      type: OscillatorType = 'triangle'
-    ) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(volume * master, startTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    };
-    const now = ctx.currentTime;
-    const step = 0.06;
-    playTone(261.63, now, 0.3, 0.2);
-    playTone(329.63, now + step, 0.3, 0.2);
-    playTone(392.0, now + step * 2, 0.3, 0.2);
-    playTone(523.25, now + step * 3, 1.0, 0.3, 'square');
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-/** Som institucional da tela de Garantia. */
-export async function playGarantiaSound(): Promise<void> {
-  const master = getMasterVolume();
-  if (master <= 0.0005) return;
-  const ctx = createCtx();
-  if (!ctx) return;
-  try {
-    if (ctx.state === 'suspended') await ctx.resume();
-    const playSineNote = (
-      startTime: number,
-      freq: number,
-      peakGain: number,
-      attackSec: number,
-      durationSec: number
-    ) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const tEnd = startTime + durationSec;
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(peakGain * master, startTime + attackSec);
-      gain.gain.exponentialRampToValueAtTime(0.0006, tEnd);
-      osc.start(startTime);
-      osc.stop(tEnd + 0.03);
-    };
-    const now = ctx.currentTime;
-    playSineNote(now, 130.81, 0.022, 0.08, 1.35);
-    playSineNote(now + 0.0, 523.25, 0.1, 0.045, 0.95);
-    playSineNote(now + 0.14, 659.25, 0.085, 0.04, 0.88);
-    playSineNote(now + 0.28, 783.99, 0.07, 0.038, 0.82);
-    playSineNote(now + 0.44, 1046.5, 0.055, 0.035, 1.05);
-    const shimmer = ctx.createOscillator();
-    const shimmerGain = ctx.createGain();
-    shimmer.type = 'sine';
-    shimmer.frequency.setValueAtTime(2093.0, now + 0.52);
-    shimmer.connect(shimmerGain);
-    shimmerGain.connect(ctx.destination);
-    const ts = now + 0.52;
-    shimmerGain.gain.setValueAtTime(0, ts);
-    shimmerGain.gain.linearRampToValueAtTime(0.02 * master, ts + 0.02);
-    shimmerGain.gain.exponentialRampToValueAtTime(0.0005, ts + 0.55);
-    shimmer.start(ts);
-    shimmer.stop(ts + 0.58);
-  } catch {
-    /* autoplay / permissões */
-  }
-}
-
-/** "Glass ping" curto dos slides/avisos. */
-export async function playSlideSound(): Promise<void> {
-  const master = getMasterVolume();
-  if (master <= 0.0005) return;
-  const ctx = createCtx();
-  if (!ctx) return;
-  try {
-    if (ctx.state === 'suspended') await ctx.resume();
-    const playSoftPing = (startTime: number, freq: number, peakGain: number, duration: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.connect(ctx.destination);
-      osc.connect(gain);
-      const tEnd = startTime + duration;
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(peakGain * master, startTime + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0008, tEnd);
-      osc.start(startTime);
-      osc.stop(tEnd + 0.02);
-    };
-    const now = ctx.currentTime;
-    playSoftPing(now, 783.99, 0.1, 0.14);
-    playSoftPing(now + 0.055, 987.77, 0.085, 0.12);
-    playSoftPing(now + 0.11, 1174.66, 0.065, 0.1);
-    const shimmer = ctx.createOscillator();
-    const shimmerGain = ctx.createGain();
-    shimmer.type = 'sine';
-    shimmer.frequency.setValueAtTime(2349.32, now + 0.08);
-    shimmer.connect(shimmerGain);
-    shimmerGain.connect(ctx.destination);
-    const ts = now + 0.08;
-    shimmerGain.gain.setValueAtTime(0, ts);
-    shimmerGain.gain.linearRampToValueAtTime(0.028 * master, ts + 0.008);
-    shimmerGain.gain.exponentialRampToValueAtTime(0.0005, ts + 0.09);
-    shimmer.start(ts);
-    shimmer.stop(ts + 0.12);
-  } catch {
-    /* autoplay / permissões */
-  }
+/** Toca o toque escolhido nas configurações para um evento da TV. */
+export async function playEventSound(event: TvSoundEvent): Promise<void> {
+  const choices = getTvSettings().soundChoices;
+  await playPreset(choices?.[event] ?? DEFAULT_PRESET_ID);
 }

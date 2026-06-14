@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
-import { playGarantiaSound } from './utils/tvSounds.ts';
+import { playEventSound } from './utils/tvSounds.ts';
 
 interface GarantiaOverlayProps {
   vehicle: Vehicle;
@@ -17,7 +17,7 @@ const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, 
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (soundEnabled) void playGarantiaSound();
+    if (soundEnabled) void playEventSound('garantia');
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);

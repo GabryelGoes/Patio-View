@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
-import { playVictorySound } from './utils/tvSounds.ts';
+import { playEventSound } from './utils/tvSounds.ts';
 
 interface PecasDisponiveisOverlayProps {
   vehicle: Vehicle;
@@ -21,7 +21,7 @@ const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (soundEnabled) void playVictorySound();
+    if (soundEnabled) void playEventSound('pecasDisponiveis');
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);

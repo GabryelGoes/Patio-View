@@ -10,7 +10,7 @@ import PecasDisponiveisOverlay from './PecasDisponiveisOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
 import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
-import { playSlideSound, playStageChangeBeep } from './utils/tvSounds.ts';
+import { playEventSound } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
 import { useTvSettings, setTvSettings } from './config/tvSettings.ts';
@@ -172,7 +172,7 @@ const App: React.FC = () => {
         if (index !== -1) {
           setPage(Math.floor(index / CARS_PER_PAGE));
           setActiveHighlightId(nextId);
-          if (soundEnabled && settings.sounds.stageChange) void playStageChangeBeep();
+          if (soundEnabled && settings.sounds.stageChange) void playEventSound('stageChange');
           setTimeout(() => {
             setActiveHighlightId(null);
             setHighlightQueue(prev => prev.slice(1));
@@ -194,9 +194,9 @@ const App: React.FC = () => {
   useEffect(() => {
     let interval: any;
     if (isEvaluationAlertActive && soundEnabled && settings.sounds.evaluationAlert) {
-      void playStageChangeBeep(1);
+      void playEventSound('evaluationAlert');
       interval = setInterval(() => {
-        void playStageChangeBeep(1);
+        void playEventSound('evaluationAlert');
       }, 1800);
     }
     return () => { if (interval) clearInterval(interval); };
@@ -308,7 +308,7 @@ const App: React.FC = () => {
     if (!currentSlide || currentSlide.playSound !== true || !soundEnabled || !settings.sounds.slide) return;
     if (lastSlideSoundIdRef.current === currentSlide.id) return;
     lastSlideSoundIdRef.current = currentSlide.id;
-    void playSlideSound();
+    void playEventSound('slide');
   }, [isSlidePage, currentSlide, soundEnabled, settings.sounds.slide]);
 
   const chimeConfigForHook = useMemo(
