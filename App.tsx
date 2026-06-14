@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WorkshopData, Stage, Vehicle } from './types.ts';
 import { fetchWorkshopData } from './services/tvApiService.ts';
-import { TV_CONFIG } from './config/tvMode.ts';
+import { TV_CONFIG, clearTvMode } from './config/tvMode.ts';
 import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
@@ -492,6 +492,15 @@ const App: React.FC = () => {
           </p>
         </div>
         <div className="flex justify-end items-center gap-4">
+          <button
+            onClick={() => clearTvMode()}
+            title="Trocar painel (Pátio / Laboratório)"
+            className="w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white"
+          >
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+              <path d="M7.41 18.59 8.83 20 4 15.17l4.83-4.83-1.42 1.41L5.83 13H16v2H5.83zM16.59 5.41 15.17 4 20 8.83l-4.83 4.83 1.42-1.41L18.17 11H8V9h10.17z" />
+            </svg>
+          </button>
           <VideoFolderButton />
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)} 
