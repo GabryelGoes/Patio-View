@@ -136,6 +136,27 @@ const FaseDeTesteCarAnimation: React.FC = () => (
   </div>
 );
 
+/** Placa no padrão Mercosul (faixa azul "BRASIL" + corpo branco com caracteres pretos). */
+const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
+  const text = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return (
+    <div className="w-full max-w-[210px] overflow-hidden rounded-md border-[3px] border-[#13235b] bg-white shadow-[0_4px_14px_rgba(0,0,0,0.45)]">
+      <div className="flex h-[18px] items-center justify-between bg-[#0b3aa8] px-1.5">
+        <span className="text-[6px] font-bold uppercase leading-none tracking-[0.1em] text-white/90">Mercosul</span>
+        <span className="text-[8px] font-extrabold uppercase leading-none tracking-[0.35em] text-white">Brasil</span>
+        <span className="flex h-2.5 w-3.5 items-center justify-center rounded-[1px] bg-[#009b3a]">
+          <span className="h-1.5 w-1.5 rotate-45 bg-yellow-400" />
+        </span>
+      </div>
+      <div className="flex items-center justify-center bg-white px-1 py-1">
+        <span className="font-mono text-[1.7rem] font-black uppercase leading-none tracking-[0.08em] text-black">
+          {text || '—'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyHighlight, isAlerting }) => {
   const [showAnim, setShowAnim] = useState(false);
   const colorClass = getStageColors(vehicle.stage);
@@ -192,22 +213,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
 
   const stageFontClass = getFontSizeClass(displayStage);
 
-  const getDeliveryStatus = () => {
-    if (isFinalizado) return { label: "PRONTO", highlight: false, isDelayed: false };
-    if (!vehicle.rawDueDate) return { label: vehicle.deliveryDate || '---', highlight: false, isDelayed: false };
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const d = new Date(vehicle.rawDueDate);
-    const delivery = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const diffDays = Math.round((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { label: "ATRASADO", highlight: true, isDelayed: true };
-    if (diffDays === 0) return { label: "HOJE", highlight: true, isDelayed: false };
-    if (diffDays === 1) return { label: "AMANHÃ", highlight: true, isDelayed: false };
-    return { label: vehicle.deliveryDate, highlight: false, isDelayed: false };
-  };
-
-  const status = getDeliveryStatus();
-
   return (
     <div
       className={`
@@ -225,11 +230,18 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
-        <span className="text-[13px] font-black opacity-60 mt-1 uppercase tracking-[0.3em]">{vehicle.plate}</span>
       </div>
 
-      <div className="w-[16%] border-l border-current/10 pl-6 overflow-visible">
-        <p className="text-xl font-black uppercase tracking-tight leading-[1.2] truncate overflow-visible">{vehicle.client}</p>
+      <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">
+        <div className="flex flex-col uppercase font-black tracking-tight leading-[1.05]">
+          {(vehicle.client || 'Cliente')
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((word, i) => (
+              <span key={i} className="text-xl truncate">{word}</span>
+            ))}
+        </div>
       </div>
 
       <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
@@ -291,10 +303,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-4 pr-2 flex items-center justify-center h-full">
-        <p className={`font-black uppercase leading-[1.2] tracking-tighter text-center ${status.isDelayed ? 'text-[1.45rem] text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] animate-pulse' : 'text-2xl opacity-80'}`}>
-          {status.label}
-        </p>
+      <div className="w-[14%] border-l border-current/10 px-3 flex items-center justify-center h-full">
+        <MercosulPlate plate={vehicle.plate} />
       </div>
 
       <div className="w-[14%] border-l border-current/10 pl-6 h-full flex items-center">

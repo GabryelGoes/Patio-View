@@ -131,7 +131,7 @@ const PATIO_CONFIG: TvModeConfig = {
   alertTextClass: 'text-yellow-400',
   soundOnClass:
     'bg-zinc-800 text-yellow-400 border-zinc-700 shadow-[0_0_15px_rgba(250,204,21,0.2)]',
-  columns: { first: 'Modelo / Placa', fourth: 'Entrega', fifth: 'Mecânico' },
+  columns: { first: 'Modelo', fourth: 'Placa', fifth: 'Mecânico' },
   emptyBox: {
     text: 'Box Livre',
     className: 'border-white/5 bg-white/[0.02] text-white/10',
