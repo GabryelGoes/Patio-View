@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import UploadedVideoTvPlayer from './UploadedVideoTvPlayer.tsx';
 import {
   useVideoFolder,
-  currentHandle,
-  getLocalVideoObjectUrl,
+  resolveLocalVideoUrl,
   chooseFolder,
   ensureGranted,
   supportsLocalVideo,
@@ -75,7 +74,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
     }
 
     (async () => {
-      const objUrl = await getLocalVideoObjectUrl(currentHandle(), name);
+      const objUrl = await resolveLocalVideoUrl(name);
       if (cancelled) {
         if (objUrl) URL.revokeObjectURL(objUrl);
         return;
@@ -101,7 +100,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
   }
 
   if (status === 'unsupported') {
-    return <Notice title="Vídeo local indisponível" subtitle="Este navegador não suporta pastas locais. Abra a TV no Google Chrome." />;
+    return <Notice title="Vídeo local indisponível" subtitle="Este navegador não suporta pastas locais. Use o Google Chrome, Edge ou Firefox no computador." />;
   }
   if (status === 'no-folder') {
     return (
@@ -116,7 +115,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
     return (
       <Notice
         title="Permitir acesso à pasta"
-        subtitle="O Chrome precisa da sua autorização para ler os vídeos locais."
+        subtitle="O navegador precisa da sua autorização para ler os vídeos locais."
         action={{ label: 'Permitir acesso', onClick: () => void ensureGranted() }}
       />
     );
@@ -125,7 +124,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
     return (
       <Notice
         title={`Vídeo não encontrado: ${name}`}
-        subtitle="Confira se o arquivo está na pasta selecionada (o nome deve ser igual)."
+        subtitle="Confira se o arquivo está na pasta selecionada (o nome deve ser igual). No Firefox, selecione a pasta novamente após adicionar vídeos."
         action={{ label: 'Trocar pasta', onClick: () => void chooseFolder() }}
       />
     );

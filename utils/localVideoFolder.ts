@@ -1,18 +1,25 @@
 /**
- * Vídeos locais da TV via File System Access API (Chrome/Edge).
+ * Vídeos locais da TV — sem upload para Storage/Vercel.
  *
- * A mídia de vídeo não precisa subir para o Storage/Vercel: o slide guarda apenas
- * uma referência "local:arquivo.mp4" e a TV lê o arquivo direto de uma pasta do PC.
+ * O slide guarda apenas uma referência "local:arquivo.mp4" e a TV lê o vídeo do PC.
+ * Há dois modos, escolhidos automaticamente conforme o navegador:
  *
- * - O handle da pasta é salvo no IndexedDB (persiste entre sessões).
- * - Após reiniciar o navegador, o Chrome pode exigir 1 clique para reautorizar
- *   (requestPermission só funciona a partir de um gesto do usuário).
+ *  - 'fsaccess' (Chrome/Edge): usa a File System Access API. Guarda o handle da
+ *    pasta no IndexedDB; a TV lê os arquivos AO VIVO (trocar um vídeo na pasta já
+ *    reflete). Após reiniciar o navegador pode pedir 1 clique para reautorizar.
+ *
+ *  - 'files' (Firefox/Safari): usa <input type="file" webkitdirectory>. Como esses
+ *    navegadores não têm a File System Access API, importamos os vídeos da pasta e
+ *    guardamos os arquivos no IndexedDB (persistem entre sessões). É um "instantâneo":
+ *    para atualizar os vídeos, basta selecionar a pasta novamente.
  */
 
 import { useEffect } from 'react';
 import { useSyncExternalStore } from 'react';
 
 export const LOCAL_PREFIX = 'local:';
+
+const VIDEO_EXT = /\.(mp4|webm|ogg|ogv|mov|m4v)$/i;
 
 /** True se a mediaUrl aponta para um arquivo local (ex.: "local:promo.mp4"). */
 export function isLocalVideoRef(url: string | null | undefined): boolean {
@@ -24,9 +31,19 @@ export function localVideoName(url: string): string {
   return String(url).trim().slice(LOCAL_PREFIX.length).replace(/^[/\\]+/, '').trim();
 }
 
-/** O navegador suporta File System Access API? (Chrome/Edge desktop). */
-export function supportsLocalVideo(): boolean {
+/** O navegador tem a File System Access API (Chrome/Edge)? */
+export function supportsFsAccess(): boolean {
   return typeof window !== 'undefined' && typeof (window as any).showDirectoryPicker === 'function';
+}
+
+/** É possível usar pastas locais neste navegador? (Chrome/Edge e também Firefox/Safari). */
+export function supportsLocalVideo(): boolean {
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+}
+
+/** Modo de leitura de pasta local conforme o navegador. */
+export function localVideoMode(): 'fsaccess' | 'files' {
+  return supportsFsAccess() ? 'fsaccess' : 'files';
 }
 
 // Handle da pasta (FileSystemDirectoryHandle). Tipado como any para não depender de libs de tipos.
@@ -36,7 +53,8 @@ type DirHandle = any;
 const DB_NAME = 'tv-local-media';
 const DB_VERSION = 1;
 const STORE = 'handles';
-const KEY = 'videoDir';
+const KEY = 'videoDir'; // handle da pasta (modo fsaccess)
+const FILES_KEY = 'videoFiles'; // mapa { nome: File } (modo files)
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -92,35 +110,34 @@ async function idbDel(key: string): Promise<void> {
   }
 }
 
-// --------------------------- FS Access helpers ---------------------------
+// --------------------------- FS Access (Chrome/Edge) ---------------------------
 async function pickFolder(): Promise<DirHandle | null> {
-  if (!supportsLocalVideo()) return null;
+  if (!supportsFsAccess()) return null;
   try {
-    const handle = await (window as any).showDirectoryPicker({ id: 'tv-video-folder', mode: 'read' });
-    await idbSet(KEY, handle).catch(() => {});
-    return handle;
+    const h = await (window as any).showDirectoryPicker({ id: 'tv-video-folder', mode: 'read' });
+    await idbSet(KEY, h).catch(() => {});
+    return h;
   } catch {
     return null; // usuário cancelou
   }
 }
 
-async function verifyPermission(handle: DirHandle, requestIfNeeded: boolean): Promise<boolean> {
-  if (!handle) return false;
+async function verifyPermission(h: DirHandle, requestIfNeeded: boolean): Promise<boolean> {
+  if (!h) return false;
   try {
     const opts = { mode: 'read' as const };
-    if ((await handle.queryPermission(opts)) === 'granted') return true;
-    if (requestIfNeeded && (await handle.requestPermission(opts)) === 'granted') return true;
+    if ((await h.queryPermission(opts)) === 'granted') return true;
+    if (requestIfNeeded && (await h.requestPermission(opts)) === 'granted') return true;
     return false;
   } catch {
     return false;
   }
 }
 
-/** Resolve "arquivo.mp4" da pasta para um objectURL tocável. Null se não achar. */
-export async function getLocalVideoObjectUrl(handle: DirHandle, name: string): Promise<string | null> {
-  if (!handle || !name) return null;
+async function getUrlFromHandle(h: DirHandle, name: string): Promise<string | null> {
+  if (!h || !name) return null;
   try {
-    const fileHandle = await handle.getFileHandle(name);
+    const fileHandle = await h.getFileHandle(name);
     const file = await fileHandle.getFile();
     return URL.createObjectURL(file);
   } catch {
@@ -128,18 +145,82 @@ export async function getLocalVideoObjectUrl(handle: DirHandle, name: string): P
   }
 }
 
+// --------------------------- Input webkitdirectory (Firefox/Safari) ---------------------------
+function isVideoFile(file: File): boolean {
+  return (typeof file.type === 'string' && file.type.startsWith('video/')) || VIDEO_EXT.test(file.name);
+}
+
+/** Abre o seletor de pasta via <input webkitdirectory> e devolve os arquivos. */
+function pickFolderFiles(): Promise<FileList | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    (input as any).webkitdirectory = true;
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+
+    let done = false;
+    const finish = (value: FileList | null) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('focus', onFocus);
+      setTimeout(() => input.remove(), 0);
+      resolve(value);
+    };
+    const onFocus = () => {
+      // Se a janela voltou ao foco e nenhum arquivo foi escolhido, tratamos como cancelamento.
+      setTimeout(() => {
+        if (!done && (!input.files || input.files.length === 0)) finish(null);
+      }, 800);
+    };
+
+    input.onchange = () => finish(input.files && input.files.length ? input.files : null);
+    window.addEventListener('focus', onFocus);
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+/** Procura um arquivo importado por nome (case-insensitive, ignora caminho). */
+function findFile(name: string): File | null {
+  if (!name) return null;
+  const target = name.toLowerCase();
+  for (const [key, file] of Object.entries(filesMap)) {
+    const base = key.split(/[/\\]/).pop()?.toLowerCase() ?? key.toLowerCase();
+    if (key.toLowerCase() === target || base === target) return file as File;
+  }
+  return null;
+}
+
+// --------------------------- Resolver unificado ---------------------------
+/** Resolve "arquivo.mp4" para um objectURL tocável, no modo do navegador atual. */
+export async function resolveLocalVideoUrl(name: string): Promise<string | null> {
+  if (localVideoMode() === 'fsaccess') return getUrlFromHandle(handle, name);
+  const f = findFile(name);
+  return f ? URL.createObjectURL(f) : null;
+}
+
 // --------------------------- Store reativo ---------------------------
 export type FolderState = {
   /** Já terminou a leitura inicial do IndexedDB. */
   ready: boolean;
-  /** Há uma pasta configurada. */
+  /** Há uma pasta/vídeos configurados. */
   hasFolder: boolean;
   /** Permissão de leitura concedida na sessão atual. */
   granted: boolean;
+  /** Modo em uso. */
+  mode: 'fsaccess' | 'files';
 };
 
 let handle: DirHandle | null = null;
-let state: FolderState = { ready: false, hasFolder: false, granted: false };
+let filesMap: Record<string, File> = {};
+let state: FolderState = {
+  ready: false,
+  hasFolder: false,
+  granted: false,
+  mode: typeof window !== 'undefined' ? localVideoMode() : 'fsaccess',
+};
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -165,12 +246,21 @@ async function initFolder(): Promise<void> {
   if (initStarted) return;
   initStarted = true;
   try {
-    const saved = await idbGet<DirHandle>(KEY);
-    if (saved) {
-      handle = saved;
-      const granted = await verifyPermission(saved, false);
-      setState({ ready: true, hasFolder: true, granted });
-      return;
+    if (localVideoMode() === 'fsaccess') {
+      const saved = await idbGet<DirHandle>(KEY);
+      if (saved) {
+        handle = saved;
+        const granted = await verifyPermission(saved, false);
+        setState({ ready: true, hasFolder: true, granted });
+        return;
+      }
+    } else {
+      const saved = await idbGet<Record<string, File>>(FILES_KEY);
+      if (saved && Object.keys(saved).length > 0) {
+        filesMap = saved;
+        setState({ ready: true, hasFolder: true, granted: true });
+        return;
+      }
     }
   } catch {
     /* ignore */
@@ -180,16 +270,33 @@ async function initFolder(): Promise<void> {
 
 /** Abre o seletor de pasta (gesto do usuário) e guarda a escolha. */
 export async function chooseFolder(): Promise<boolean> {
-  const picked = await pickFolder();
-  if (!picked) return false;
-  handle = picked;
-  const granted = await verifyPermission(picked, true);
-  setState({ hasFolder: true, granted });
-  return granted;
+  if (localVideoMode() === 'fsaccess') {
+    const picked = await pickFolder();
+    if (!picked) return false;
+    handle = picked;
+    const granted = await verifyPermission(picked, true);
+    setState({ hasFolder: true, granted });
+    return granted;
+  }
+
+  // Modo files (Firefox/Safari): importar vídeos da pasta e salvar no IndexedDB.
+  const files = await pickFolderFiles();
+  if (!files) return false;
+  const map: Record<string, File> = {};
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    if (isVideoFile(f)) map[f.name] = f;
+  }
+  if (Object.keys(map).length === 0) return false;
+  filesMap = map;
+  await idbSet(FILES_KEY, map).catch(() => {});
+  setState({ hasFolder: true, granted: true });
+  return true;
 }
 
 /** Garante permissão na pasta já configurada (gesto do usuário). */
 export async function ensureGranted(): Promise<boolean> {
+  if (localVideoMode() !== 'fsaccess') return state.hasFolder; // no modo files não há permissão a pedir
   if (!handle) return false;
   if (state.granted) return true;
   const granted = await verifyPermission(handle, true);
@@ -197,16 +304,13 @@ export async function ensureGranted(): Promise<boolean> {
   return granted;
 }
 
-/** Remove a pasta configurada. */
+/** Remove a pasta/vídeos configurados. */
 export async function forgetFolder(): Promise<void> {
   handle = null;
+  filesMap = {};
   await idbDel(KEY).catch(() => {});
+  await idbDel(FILES_KEY).catch(() => {});
   setState({ hasFolder: false, granted: false });
-}
-
-/** Handle atual (para resolver arquivos). */
-export function currentHandle(): DirHandle | null {
-  return handle;
 }
 
 /** Hook React: estado da pasta de vídeos (dispara init na 1ª montagem). */
