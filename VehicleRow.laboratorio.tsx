@@ -12,26 +12,31 @@ interface VehicleRowProps {
 
 const getStageColors = (stage: Stage) => {
   const s = stage.toLowerCase();
-  
+
   if (s.includes('não aprovado') || s.includes('nao aprovado')) {
     return 'bg-violet-600 text-white border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.2)]';
   }
-
-  if (s.includes('garantia')) return 'bg-red-700 text-white border-red-600';
-  if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-[#F5F4EF] text-zinc-800 border-[#E2E0D7]';
-  if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao')) return 'bg-amber-500 text-amber-950 border-amber-600';
-  if (s.includes('avaliação') || s.includes('aprovação')) return 'bg-yellow-400 text-yellow-950 border-yellow-300';
-  
-  if (s.includes('serviço')) return 'bg-blue-600 text-white border-blue-500';
-  if (s.includes('aprovado')) return 'bg-orange-600 text-white border-orange-500';
-  
-  if (s.includes('peças') && s.includes('dispon')) return 'bg-pink-500 text-white border-pink-400';
-  if (s.includes('peças')) return 'bg-cyan-500 text-cyan-950 border-cyan-400';
-  if (s.includes('teste')) return 'bg-green-800 text-white border-green-700';
+  if (s.includes('garantia')) return 'bg-red-600 text-white border-red-600';
+  if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-zinc-500 text-white border-zinc-600';
+  if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao'))
+    return 'bg-amber-500 text-amber-950 border-amber-600';
+  if (s.includes('avaliação técnica') || s.includes('avaliacao tecnica'))
+    return 'bg-[#F5D00B] text-black border-[#F5D00B]';
+  if (s.includes('orçamento aprovado') || s.includes('orcamento aprovado'))
+    return 'bg-orange-600 text-white border-orange-600';
+  if (s.includes('disponíve') || s.includes('disponive')) {
+    return 'bg-pink-500 text-white border-pink-400 shadow-[0_0_18px_rgba(236,72,153,0.35)]';
+  }
+  if (s.includes('aguardando') && s.includes('peças') || s.includes('aguardando') && s.includes('pecas')) {
+    return 'bg-teal-500 text-white border-teal-400';
+  }
+  if (s.includes('envio') && s.includes('conserto')) return 'bg-indigo-600 text-white border-indigo-600';
+  if (s.includes('chegada') && s.includes('conserto')) return 'bg-cyan-600 text-white border-cyan-600';
+  if (s.includes('serviço') || s.includes('servico')) return 'bg-blue-600 text-white border-blue-500';
   if (s.includes('pronto pra retirada') || s.includes('pronto para retirada'))
     return 'bg-green-500 text-black border-green-400';
   if (s.includes('finalizado')) return 'bg-green-500 text-black border-green-400';
-  
+
   return 'bg-zinc-800 text-white border-zinc-700';
 };
 
