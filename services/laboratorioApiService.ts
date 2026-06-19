@@ -56,11 +56,36 @@ function isFromWorkshop(issueDescription: string | null | undefined): boolean {
   return s.includes('servico enviado do patio');
 }
 
-/** Rótulo do tipo de produto do laboratório; para "outro" usa o texto livre. */
-function labProductLabel(kind: string | null | undefined, other: string | null | undefined): string {
+/** Extrai o rótulo do serviço encaminhado do pátio (legado em issue_description). */
+function extractPatioServiceFromIssue(issueDescription: string | null | undefined): string {
+  const issue = String(issueDescription ?? '').trim();
+  const m = issue.match(/Serviço enviado do pátio \(OS #[^)]+\):\s*(.+?)(?:\n|$)/i);
+  return m?.[1]?.trim() ?? '';
+}
+
+/**
+ * Rótulo do tipo de produto do laboratório; para "outro" usa o texto livre.
+ * OS antigas do pátio gravavam o nome do serviço em module_product_other — não exibir como produto.
+ */
+function labProductLabel(
+  kind: string | null | undefined,
+  other: string | null | undefined,
+  moduleIdentification: string | null | undefined,
+  issueDescription: string | null | undefined
+): string {
   const k = String(kind ?? '').toLowerCase().trim();
   if (k === 'outro') {
     const t = String(other ?? '').trim();
+    if (t && isFromWorkshop(issueDescription)) {
+      const patioService = extractPatioServiceFromIssue(issueDescription);
+      const modId = String(moduleIdentification ?? '').trim();
+      if (
+        (patioService && patioService.toLowerCase() === t.toLowerCase()) ||
+        (modId && modId.toLowerCase() === t.toLowerCase())
+      ) {
+        return MODULE_KIND_LABELS.outro;
+      }
+    }
     return t || MODULE_KIND_LABELS.outro;
   }
   return MODULE_KIND_LABELS[k] ?? '—';
@@ -238,7 +263,12 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
             row.bench_slot != null && Number.isFinite(Number(row.bench_slot))
               ? Number(row.bench_slot)
               : null,
-          productType: labProductLabel(row.module_kind, row.module_product_other),
+          productType: labProductLabel(
+            row.module_kind,
+            row.module_product_other,
+            row.module_identification,
+            row.issue_description
+          ),
           fromWorkshop: isFromWorkshop(row.issue_description),
         };
       });

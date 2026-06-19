@@ -194,9 +194,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.trim()}
         </h2>
-        <span className="inline-flex w-fit max-w-full items-center rounded-lg border border-white/35 bg-black/25 px-3 py-1 text-lg font-black uppercase tracking-[0.2em] text-white shadow-[0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-sm">
-          {vehicle.plate}
-        </span>
       </div>
 
       <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">

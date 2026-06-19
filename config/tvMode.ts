@@ -164,7 +164,7 @@ const LABORATORIO_CONFIG: TvModeConfig = {
   alertTextClass: 'text-violet-300',
   soundOnClass:
     'bg-zinc-800 text-violet-400 border-zinc-700 shadow-[0_0_15px_rgba(139,92,246,0.25)]',
-  columns: { first: 'Carro / OS', fourth: 'Compartimento', fifth: 'Produto' },
+  columns: { first: 'Carro', fourth: 'Compartimento', fifth: 'Produto' },
   emptyBox: {
     text: 'Vaga Livre',
     className: 'border-violet-500/10 bg-violet-500/[0.03] text-violet-200/20',
