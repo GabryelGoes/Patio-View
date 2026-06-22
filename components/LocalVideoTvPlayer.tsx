@@ -1,35 +1,34 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import UploadedVideoTvPlayer from './UploadedVideoTvPlayer.tsx';
 import {
   useVideoFolder,
   resolveLocalVideoUrl,
-  chooseFolder,
+  pickAndImportVideo,
   ensureGranted,
   supportsLocalVideo,
+  localVideoMode,
 } from '../utils/localVideoFolder.ts';
 
 type LocalVideoTvPlayerProps = {
-  /** Nome do arquivo na pasta local (ex.: "promo.mp4"). */
   name: string;
-  /** Encaixe do vídeo na área da TV. */
   objectFit?: 'contain' | 'cover' | 'fill';
 };
 
-type Status = 'loading' | 'ready' | 'unsupported' | 'no-folder' | 'no-permission' | 'not-found';
+type Status = 'loading' | 'ready' | 'unsupported' | 'needs-video' | 'no-permission';
 
-/** Caixa central com mensagem + ação (selecionar/permitir pasta). */
-const Notice: React.FC<{ title: string; subtitle?: string; action?: { label: string; onClick: () => void } }> = ({
-  title,
-  subtitle,
-  action,
-}) => (
+const Notice: React.FC<{
+  title: string;
+  subtitle?: string;
+  action?: { label: string; onClick: () => void };
+}> = ({ title, subtitle, action }) => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
     <p className="text-xl font-black text-white/90">{title}</p>
-    {subtitle && <p className="max-w-[80%] text-sm font-semibold text-zinc-400">{subtitle}</p>}
+    {subtitle && <p className="max-w-[85%] text-sm font-semibold text-zinc-400">{subtitle}</p>}
     {action && (
       <button
+        type="button"
         onClick={action.onClick}
-        className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-6 py-3 text-sm font-black uppercase tracking-wider text-yellow-300 transition active:scale-95 hover:bg-yellow-500/20"
+        className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-8 py-4 text-base font-black uppercase tracking-wider text-yellow-300 transition active:scale-95 hover:bg-yellow-500/20"
       >
         {action.label}
       </button>
@@ -37,11 +36,11 @@ const Notice: React.FC<{ title: string; subtitle?: string; action?: { label: str
   </div>
 );
 
-/** Toca um vídeo lido de uma pasta local do PC (sem upload). */
 const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit }) => {
   const folder = useVideoFolder();
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('loading');
+  const [reloadKey, setReloadKey] = useState(0);
   const urlRef = useRef<string | null>(null);
 
   const revoke = () => {
@@ -51,11 +50,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    revoke();
-    setUrl(null);
-
+  const tryLoad = useCallback(async () => {
     if (!supportsLocalVideo()) {
       setStatus('unsupported');
       return;
@@ -64,73 +59,73 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
       setStatus('loading');
       return;
     }
-    if (!folder.hasFolder) {
-      setStatus('no-folder');
+
+    const objUrl = await resolveLocalVideoUrl(name);
+    if (objUrl) {
+      revoke();
+      urlRef.current = objUrl;
+      setUrl(objUrl);
+      setStatus('ready');
       return;
     }
-    if (!folder.granted) {
+
+    if (folder.hasFolder && !folder.granted && localVideoMode() === 'fsaccess') {
       setStatus('no-permission');
       return;
     }
 
-    (async () => {
-      const objUrl = await resolveLocalVideoUrl(name);
-      if (cancelled) {
-        if (objUrl) URL.revokeObjectURL(objUrl);
-        return;
-      }
-      if (!objUrl) {
-        setStatus('not-found');
-        return;
-      }
-      urlRef.current = objUrl;
-      setUrl(objUrl);
-      setStatus('ready');
+    setStatus('needs-video');
+  }, [folder.ready, folder.hasFolder, folder.granted, name]);
+
+  useEffect(() => {
+    void tryLoad();
+    return () => revoke();
+  }, [tryLoad, reloadKey]);
+
+  const onPickVideo = () => {
+    void (async () => {
+      const ok = await pickAndImportVideo(name);
+      if (ok) setReloadKey((k) => k + 1);
     })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [name, folder.ready, folder.hasFolder, folder.granted]);
-
-  useEffect(() => () => revoke(), []);
+  };
 
   if (status === 'ready' && url) {
     return <UploadedVideoTvPlayer src={url} objectFit={objectFit} />;
   }
 
   if (status === 'unsupported') {
-    return <Notice title="Vídeo local indisponível" subtitle="Este navegador não suporta pastas locais. Use o Google Chrome, Edge ou Firefox no computador." />;
-  }
-  if (status === 'no-folder') {
     return (
       <Notice
-        title="Configurar pasta de vídeos"
-        subtitle="Selecione a pasta do PC onde ficam os vídeos da TV."
-        action={{ label: 'Selecionar pasta', onClick: () => void chooseFolder() }}
-      />
-    );
-  }
-  if (status === 'no-permission') {
-    return (
-      <Notice
-        title="Permitir acesso à pasta"
-        subtitle="O navegador precisa da sua autorização para ler os vídeos locais."
-        action={{ label: 'Permitir acesso', onClick: () => void ensureGranted() }}
-      />
-    );
-  }
-  if (status === 'not-found') {
-    return (
-      <Notice
-        title={`Vídeo não encontrado: ${name}`}
-        subtitle="Confira se o arquivo está na pasta selecionada (o nome deve ser igual). No Firefox, selecione a pasta novamente após adicionar vídeos."
-        action={{ label: 'Trocar pasta', onClick: () => void chooseFolder() }}
+        title="Vídeo local indisponível"
+        subtitle="Use Chrome, Edge ou Firefox neste computador."
       />
     );
   }
 
-  return <Notice title="Carregando vídeo…" />;
+  if (status === 'no-permission') {
+    return (
+      <Notice
+        title="Permitir acesso aos vídeos"
+        subtitle="Toque abaixo uma vez — ou selecione o arquivo diretamente."
+        action={{
+          label: 'Continuar',
+          onClick: () => void ensureGranted().then(() => setReloadKey((k) => k + 1)),
+        }}
+      />
+    );
+  }
+
+  if (status === 'needs-video') {
+    return (
+      <Notice
+        title="Selecionar vídeo"
+        subtitle={name ? `Escolha o arquivo: ${name}` : 'Escolha o vídeo deste slide no seu PC.'}
+        action={{ label: 'Selecionar vídeo', onClick: onPickVideo }}
+      />
+    );
+  }
+
+  return <Notice title="Carregando…" />;
 };
 
 export default LocalVideoTvPlayer;

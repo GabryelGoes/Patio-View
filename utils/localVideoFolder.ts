@@ -194,11 +194,81 @@ function findFile(name: string): File | null {
 }
 
 // --------------------------- Resolver unificado ---------------------------
-/** Resolve "arquivo.mp4" para um objectURL tocável, no modo do navegador atual. */
+/** Resolve "arquivo.mp4" para um objectURL tocável. */
 export async function resolveLocalVideoUrl(name: string): Promise<string | null> {
-  if (localVideoMode() === 'fsaccess') return getUrlFromHandle(handle, name);
+  if (localVideoMode() === 'fsaccess' && handle && state.granted) {
+    const fromFolder = await getUrlFromHandle(handle, name);
+    if (fromFolder) return fromFolder;
+  }
   const f = findFile(name);
   return f ? URL.createObjectURL(f) : null;
+}
+
+/** Escolhe um vídeo e guarda para tocar (sem configurar pasta). */
+export async function pickSingleVideoFile(): Promise<File | null> {
+  if (supportsFsAccess() && typeof (window as Window & { showOpenFilePicker?: unknown }).showOpenFilePicker === 'function') {
+    try {
+      const [fh] = await (window as Window & {
+        showOpenFilePicker: (o: {
+          types: { description: string; accept: Record<string, string[]> }[];
+          multiple: boolean;
+        }) => Promise<FileSystemFileHandle[]>;
+      }).showOpenFilePicker({
+        types: [
+          {
+            description: 'Vídeo',
+            accept: { 'video/*': ['.mp4', '.mov', '.webm', '.m4v', '.avi', '.mkv', '.3gp'] },
+          },
+        ],
+        multiple: false,
+      });
+      return fh ? await fh.getFile() : null;
+    } catch {
+      return null;
+    }
+  }
+  return pickVideoFileViaInput();
+}
+
+function pickVideoFileViaInput(): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/*,.mp4,.mov,.m4v,.webm,.avi,.mkv,.3gp';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    const done = (f: File | null) => {
+      input.remove();
+      resolve(f);
+    };
+    input.onchange = () => done(input.files?.[0] ?? null);
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+/** Importa um vídeo escolhido — a TV toca sem precisar configurar pasta. */
+export async function importVideoFile(file: File): Promise<void> {
+  if (!isVideoFile(file)) throw new Error('Arquivo não é vídeo.');
+  const base = file.name.split(/[/\\]/).pop() || file.name;
+  filesMap[base] = file;
+  await idbSet(FILES_KEY, filesMap);
+  setState({ hasFolder: true, granted: true });
+}
+
+/** Um clique na TV: escolhe o vídeo e passa a tocar. */
+export async function pickAndImportVideo(expectedName?: string): Promise<boolean> {
+  const file = await pickSingleVideoFile();
+  if (!file) return false;
+  const base = file.name.split(/[/\\]/).pop() || file.name;
+  if (expectedName && base.toLowerCase() !== expectedName.toLowerCase()) {
+    if (typeof window !== 'undefined') {
+      window.alert(`Este slide usa o arquivo "${expectedName}". Você escolheu "${base}".`);
+    }
+    return false;
+  }
+  await importVideoFile(file);
+  return true;
 }
 
 // --------------------------- Store reativo ---------------------------
@@ -246,19 +316,18 @@ async function initFolder(): Promise<void> {
   if (initStarted) return;
   initStarted = true;
   try {
+    const savedFiles = await idbGet<Record<string, File>>(FILES_KEY);
+    if (savedFiles && Object.keys(savedFiles).length > 0) {
+      filesMap = savedFiles;
+      setState({ ready: true, hasFolder: true, granted: true });
+      return;
+    }
     if (localVideoMode() === 'fsaccess') {
       const saved = await idbGet<DirHandle>(KEY);
       if (saved) {
         handle = saved;
         const granted = await verifyPermission(saved, false);
         setState({ ready: true, hasFolder: true, granted });
-        return;
-      }
-    } else {
-      const saved = await idbGet<Record<string, File>>(FILES_KEY);
-      if (saved && Object.keys(saved).length > 0) {
-        filesMap = saved;
-        setState({ ready: true, hasFolder: true, granted: true });
         return;
       }
     }

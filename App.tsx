@@ -30,10 +30,10 @@ const VideoFolderButton: React.FC = () => {
   const ok = folder.hasFolder && folder.granted;
   const needsPermission = folder.hasFolder && !folder.granted;
   const title = ok
-    ? 'Pasta de vídeos configurada (clique para trocar)'
+    ? 'Pasta de vídeos (opcional)'
     : needsPermission
-      ? 'Clique para permitir o acesso à pasta de vídeos'
-      : 'Configurar pasta de vídeos locais';
+      ? 'Permitir acesso aos vídeos'
+      : 'Configurar pasta de vídeos (opcional)';
 
   const onClick = () => {
     if (needsPermission) void ensureGranted();
