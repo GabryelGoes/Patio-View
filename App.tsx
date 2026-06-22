@@ -13,6 +13,7 @@ import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
 import { playEventSound } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
+import { useTvFullscreen } from './hooks/useTvFullscreen.ts';
 import { useTvSettings, setTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
 import {
@@ -83,6 +84,17 @@ const App: React.FC = () => {
   useEffect(() => {
     document.title = TV_CONFIG.documentTitle;
   }, []);
+
+  const fullscreen = useTvFullscreen();
+
+  useEffect(() => {
+    if (!fullscreen.needsPrompt) return;
+    const onPointerDown = () => {
+      void fullscreen.requestFullscreen();
+    };
+    document.addEventListener('pointerdown', onPointerDown, { once: true, capture: true });
+    return () => document.removeEventListener('pointerdown', onPointerDown, { capture: true });
+  }, [fullscreen.needsPrompt, fullscreen.requestFullscreen]);
   
   const [celebrationQueue, setCelebrationQueue] = useState<Vehicle[]>([]);
   const [pecasDisponiveisQueue, setPecasDisponiveisQueue] = useState<Vehicle[]>([]);
@@ -374,6 +386,14 @@ const App: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
       {settingsOpen && <TvSettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {fullscreen.supported && fullscreen.needsPrompt && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[850] flex justify-center px-4">
+          <div className="rounded-2xl border border-[#00c247]/40 bg-zinc-950/95 px-5 py-3 text-center shadow-lg backdrop-blur-sm">
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-[#00c247]">Tela cheia</p>
+            <p className="mt-1 text-xs font-semibold text-zinc-300">Toque em qualquer lugar para esconder a barra do navegador</p>
+          </div>
+        </div>
+      )}
       {isFullscreenMedia && currentSlide && (
         <div className="fixed inset-0 z-[60] bg-black">
           <TvSlidePage slide={currentSlide} fullscreen />
@@ -472,6 +492,28 @@ const App: React.FC = () => {
             </svg>
           </button>
           <VideoFolderButton />
+          {fullscreen.supported && (
+            <button
+              onClick={() => {
+                if (fullscreen.needsPrompt) void fullscreen.requestFullscreen();
+                else void fullscreen.toggle();
+              }}
+              title={fullscreen.active ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
+              className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
+                fullscreen.active
+                  ? 'bg-[#009c3b]/20 text-[#00c247] border-[#00c247]/40'
+                  : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                {fullscreen.active ? (
+                  <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+                ) : (
+                  <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                )}
+              </svg>
+            </button>
+          )}
           <button
             onClick={() => setSettingsOpen(true)}
             title="Configurações da TV"
