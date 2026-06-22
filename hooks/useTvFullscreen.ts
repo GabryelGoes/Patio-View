@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  burstFullscreenRetries,
   enterBrowserFullscreen,
+  FULLSCREEN_AUTO_RETRY_MS,
   hasFullscreenPreference,
   isBrowserFullscreen,
   setFullscreenPreference,
@@ -8,69 +10,98 @@ import {
   toggleBrowserFullscreen,
 } from '../utils/tvFullscreen';
 
-const AUTO_RETRY_MS = 4000;
-
 export function useTvFullscreen() {
   const supported = supportsBrowserFullscreen();
   const [active, setActive] = useState(isBrowserFullscreen);
   const [autoEnabled, setAutoEnabled] = useState(() => hasFullscreenPreference());
   const needsPrompt = supported && !active && !autoEnabled;
-  const enteringRef = useRef(false);
+  const burstCancelRef = useRef<(() => void) | null>(null);
+
+  const markEnabled = useCallback(() => {
+    setFullscreenPreference(true);
+    setAutoEnabled(true);
+  }, []);
 
   const requestFullscreen = useCallback(async () => {
-    if (!supported || enteringRef.current) return false;
-    enteringRef.current = true;
-    try {
-      const ok = await enterBrowserFullscreen();
+    if (!supported) return false;
+    const ok = await enterBrowserFullscreen();
+    if (ok) {
+      markEnabled();
+      setActive(true);
+    }
+    return ok;
+  }, [supported, markEnabled]);
+
+  const tryAutoEnter = useCallback(() => {
+    if (!supported || !hasFullscreenPreference() || isBrowserFullscreen()) return;
+    if (document.visibilityState === 'hidden') return;
+    void enterBrowserFullscreen().then((ok) => {
       if (ok) {
-        setFullscreenPreference(true);
-        setAutoEnabled(true);
+        markEnabled();
         setActive(true);
       }
-      return ok;
-    } finally {
-      enteringRef.current = false;
-    }
-  }, [supported]);
-
-  const tryAutoEnter = useCallback(async () => {
-    if (!supported || !hasFullscreenPreference() || isBrowserFullscreen() || enteringRef.current) return;
-    await requestFullscreen();
-  }, [supported, requestFullscreen]);
+    });
+  }, [supported, markEnabled]);
 
   useEffect(() => {
     if (!supported) return;
-    const sync = () => {
+
+    const onFullscreenChange = () => {
       const on = isBrowserFullscreen();
       setActive(on);
-      if (!on && hasFullscreenPreference()) {
-        window.requestAnimationFrame(() => void tryAutoEnter());
+
+      if (on) {
+        burstCancelRef.current?.();
+        burstCancelRef.current = null;
+        return;
       }
+
+      if (!hasFullscreenPreference()) {
+        setAutoEnabled(false);
+        return;
+      }
+
+      burstCancelRef.current?.();
+      burstCancelRef.current = burstFullscreenRetries();
     };
-    document.addEventListener('fullscreenchange', sync);
-    document.addEventListener('webkitfullscreenchange', sync);
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
     return () => {
-      document.removeEventListener('fullscreenchange', sync);
-      document.removeEventListener('webkitfullscreenchange', sync);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+      burstCancelRef.current?.();
+      burstCancelRef.current = null;
     };
-  }, [supported, tryAutoEnter]);
+  }, [supported]);
 
   useEffect(() => {
-    if (!supported || !autoEnabled) return;
-    void tryAutoEnter();
+    if (!supported) return;
+
+    tryAutoEnter();
+
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void tryAutoEnter();
+      if (document.visibilityState === 'visible') tryAutoEnter();
     };
-    const onFocus = () => void tryAutoEnter();
+    const onFocus = () => tryAutoEnter();
+    const onPageShow = () => tryAutoEnter();
+
     window.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onFocus);
-    const interval = window.setInterval(() => void tryAutoEnter(), AUTO_RETRY_MS);
+    window.addEventListener('pageshow', onPageShow);
+
+    const interval = window.setInterval(() => {
+      if (!hasFullscreenPreference()) return;
+      tryAutoEnter();
+    }, FULLSCREEN_AUTO_RETRY_MS);
+
     return () => {
       window.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pageshow', onPageShow);
       window.clearInterval(interval);
     };
-  }, [supported, autoEnabled, tryAutoEnter]);
+  }, [supported, tryAutoEnter]);
 
   useEffect(() => {
     if (!supported || !needsPrompt) return;
@@ -84,19 +115,23 @@ export function useTvFullscreen() {
     const onPointerDown = () => {
       if (!isBrowserFullscreen()) void requestFullscreen();
     };
+    const onKeyDown = () => {
+      if (!isBrowserFullscreen()) void requestFullscreen();
+    };
     document.addEventListener('pointerdown', onPointerDown, { capture: true });
-    return () => document.removeEventListener('pointerdown', onPointerDown, { capture: true });
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, { capture: true });
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [supported, autoEnabled, requestFullscreen]);
 
   const toggle = useCallback(async () => {
     if (!supported) return;
     const on = await toggleBrowserFullscreen();
     setActive(on);
-    if (on) {
-      setFullscreenPreference(true);
-      setAutoEnabled(true);
-    }
-  }, [supported]);
+    if (on) markEnabled();
+  }, [supported, markEnabled]);
 
   return { supported, active, needsPrompt, autoEnabled, requestFullscreen, toggle };
 }
