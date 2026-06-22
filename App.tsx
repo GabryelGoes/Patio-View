@@ -86,15 +86,6 @@ const App: React.FC = () => {
   }, []);
 
   const fullscreen = useTvFullscreen();
-
-  useEffect(() => {
-    if (!fullscreen.needsPrompt) return;
-    const onPointerDown = () => {
-      void fullscreen.requestFullscreen();
-    };
-    document.addEventListener('pointerdown', onPointerDown, { once: true, capture: true });
-    return () => document.removeEventListener('pointerdown', onPointerDown, { capture: true });
-  }, [fullscreen.needsPrompt, fullscreen.requestFullscreen]);
   
   const [celebrationQueue, setCelebrationQueue] = useState<Vehicle[]>([]);
   const [pecasDisponiveisQueue, setPecasDisponiveisQueue] = useState<Vehicle[]>([]);
@@ -494,10 +485,7 @@ const App: React.FC = () => {
           <VideoFolderButton />
           {fullscreen.supported && (
             <button
-              onClick={() => {
-                if (fullscreen.needsPrompt) void fullscreen.requestFullscreen();
-                else void fullscreen.toggle();
-              }}
+              onClick={() => void fullscreen.toggle()}
               title={fullscreen.active ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
               className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
                 fullscreen.active
