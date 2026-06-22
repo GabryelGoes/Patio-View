@@ -283,13 +283,45 @@ export async function chooseFolder(): Promise<boolean> {
   const files = await pickFolderFiles();
   if (!files) return false;
   const map: Record<string, File> = {};
+  let totalBytes = 0;
+  let skippedLarge = 0;
+  const LARGE_SINGLE = 100 * 1024 * 1024;
+  const LARGE_TOTAL = 200 * 1024 * 1024;
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    if (isVideoFile(f)) map[f.name] = f;
+    if (!isVideoFile(f)) continue;
+    if (f.size > LARGE_SINGLE) {
+      skippedLarge++;
+      continue;
+    }
+    totalBytes += f.size;
+    if (totalBytes > LARGE_TOTAL) break;
+    map[f.name] = f;
   }
-  if (Object.keys(map).length === 0) return false;
+  if (Object.keys(map).length === 0) {
+    if (skippedLarge > 0 && typeof window !== 'undefined') {
+      window.alert(
+        'Vídeo(s) muito grande(s) para este navegador.\n\nUse Google Chrome ou Edge na TV e selecione a pasta em modo leitura — vídeos longos funcionam sem limite de tamanho.'
+      );
+    }
+    return false;
+  }
+  if (skippedLarge > 0 && typeof window !== 'undefined') {
+    window.alert(
+      `${skippedLarge} vídeo(s) grande(s) ignorado(s). Para vídeos longos, use Chrome/Edge e selecione a pasta (leitura ao vivo, sem copiar para o navegador).`
+    );
+  }
   filesMap = map;
-  await idbSet(FILES_KEY, map).catch(() => {});
+  try {
+    await idbSet(FILES_KEY, map);
+  } catch {
+    if (typeof window !== 'undefined') {
+      window.alert(
+        'Não foi possível guardar os vídeos no navegador (pasta muito grande).\n\nUse Chrome ou Edge e selecione a mesma pasta — os arquivos ficam no disco, sem limite.'
+      );
+    }
+    return false;
+  }
   setState({ hasFolder: true, granted: true });
   return true;
 }
