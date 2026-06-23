@@ -14,6 +14,7 @@ import { playEventSound } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
 import { useTvFullscreen } from './hooks/useTvFullscreen.ts';
+import { getVideoSources, resolveVideoSlideForVisit } from './utils/tvSlideVideo.ts';
 import { useTvSettings, setTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
 import {
@@ -107,6 +108,7 @@ const App: React.FC = () => {
     kind: TvChimeKind;
   } | null>(null);
   const chimeBannerTimerRef = useRef<number | null>(null);
+  const videoVisitCounterRef = useRef<Record<string, number>>({});
 
   const loadData = async () => {
     try {
@@ -289,12 +291,30 @@ const App: React.FC = () => {
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
   const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
 
+  useEffect(() => {
+    if (!isSlidePage || !currentSlide || currentSlide.slideType !== 'video') return;
+    if (getVideoSources(currentSlide).length <= 1) return;
+    const slideId = currentSlide.id;
+    return () => {
+      videoVisitCounterRef.current[slideId] = (videoVisitCounterRef.current[slideId] ?? 0) + 1;
+    };
+  }, [page, isSlidePage, currentSlide?.id, currentSlide?.slideType, currentSlide?.mediaPlaylist, currentSlide?.mediaUrl]);
+
+  const displaySlide = useMemo(() => {
+    if (!currentSlide) return null;
+    if (currentSlide.slideType !== 'video') return currentSlide;
+    const sources = getVideoSources(currentSlide);
+    if (sources.length <= 1) return currentSlide;
+    const visitIndex = videoVisitCounterRef.current[currentSlide.id] ?? 0;
+    return resolveVideoSlideForVisit(currentSlide, visitIndex);
+  }, [currentSlide, page]);
+
   /** Mídia (imagem/vídeo) em tela cheia: cobre todo o painel, sem cabeçalho/bordas. */
   const isFullscreenMedia =
-    !!currentSlide &&
-    !!currentSlide.mediaUrl &&
-    (currentSlide.slideType === 'image' || currentSlide.slideType === 'video') &&
-    currentSlide.mediaFullscreen === true;
+    !!displaySlide &&
+    !!displaySlide.mediaUrl &&
+    (displaySlide.slideType === 'image' || displaySlide.slideType === 'video') &&
+    displaySlide.mediaFullscreen === true;
 
   const lastSlideSoundIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -385,9 +405,9 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {isFullscreenMedia && currentSlide && (
+      {isFullscreenMedia && displaySlide && (
         <div className="fixed inset-0 z-[60] bg-black">
-          <TvSlidePage slide={currentSlide} fullscreen />
+          <TvSlidePage key={displaySlide.mediaUrl ?? displaySlide.id} slide={displaySlide} fullscreen />
         </div>
       )}
       {chimeBanner && (
@@ -566,9 +586,9 @@ const App: React.FC = () => {
 
       {isSlidePage && currentSlide && isFullscreenMedia ? (
         <main className="flex-1 min-h-0" />
-      ) : isSlidePage && currentSlide ? (
+      ) : isSlidePage && displaySlide ? (
         <main className="flex-1 flex flex-col min-h-0">
-          <TvSlidePage slide={currentSlide} />
+          <TvSlidePage key={displaySlide.mediaUrl ?? displaySlide.id} slide={displaySlide} />
         </main>
       ) : (
         <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">

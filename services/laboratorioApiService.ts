@@ -172,7 +172,12 @@ function formatVehicleDisplay(row: ServiceOrderRow): string {
 function normalizeTvSlide(raw: Record<string, unknown>): TvSlide {
   const base = raw as unknown as TvSlide;
   const pin = base.pinImmediate === true || raw.pin_immediate === true;
-  return { ...base, pinImmediate: pin };
+  const mediaPlaylist = Array.isArray(raw.mediaPlaylist)
+    ? (raw.mediaPlaylist as unknown[]).map((u) => String(u).trim()).filter(Boolean)
+    : Array.isArray(raw.media_playlist)
+      ? (raw.media_playlist as unknown[]).map((u) => String(u).trim()).filter(Boolean)
+      : base.mediaPlaylist;
+  return { ...base, pinImmediate: pin, mediaPlaylist };
 }
 
 async function fetchTvPlaylist(): Promise<{

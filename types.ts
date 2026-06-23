@@ -47,6 +47,8 @@ export interface TvSlide {
   title: string;
   body: string;
   mediaUrl: string | null;
+  /** Vários vídeos no mesmo slot: alterna a cada visita desta página na TV. */
+  mediaPlaylist?: string[];
   durationSeconds: number;
   sortOrder: number;
   goalCurrent: number | null;
