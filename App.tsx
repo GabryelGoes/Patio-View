@@ -109,6 +109,7 @@ const App: React.FC = () => {
   } | null>(null);
   const chimeBannerTimerRef = useRef<number | null>(null);
   const videoVisitCounterRef = useRef<Record<string, number>>({});
+  const [videoVisitVersion, setVideoVisitVersion] = useState(0);
 
   const loadData = async () => {
     try {
@@ -297,6 +298,7 @@ const App: React.FC = () => {
     const slideId = currentSlide.id;
     return () => {
       videoVisitCounterRef.current[slideId] = (videoVisitCounterRef.current[slideId] ?? 0) + 1;
+      setVideoVisitVersion((v) => v + 1);
     };
   }, [page, isSlidePage, currentSlide?.id, currentSlide?.slideType, currentSlide?.mediaPlaylist, currentSlide?.mediaUrl]);
 
@@ -304,10 +306,11 @@ const App: React.FC = () => {
     if (!currentSlide) return null;
     if (currentSlide.slideType !== 'video') return currentSlide;
     const sources = getVideoSources(currentSlide);
-    if (sources.length <= 1) return currentSlide;
+    if (sources.length === 0) return { ...currentSlide, mediaUrl: null };
+    if (sources.length <= 1) return { ...currentSlide, mediaUrl: sources[0] };
     const visitIndex = videoVisitCounterRef.current[currentSlide.id] ?? 0;
     return resolveVideoSlideForVisit(currentSlide, visitIndex);
-  }, [currentSlide, page]);
+  }, [currentSlide, page, videoVisitVersion]);
 
   /** Mídia (imagem/vídeo) em tela cheia: cobre todo o painel, sem cabeçalho/bordas. */
   const isFullscreenMedia =

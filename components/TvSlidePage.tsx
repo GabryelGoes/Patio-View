@@ -3,6 +3,7 @@ import YoutubeTvPlayer from './YoutubeTvPlayer.tsx';
 import UploadedVideoTvPlayer from './UploadedVideoTvPlayer.tsx';
 import LocalVideoTvPlayer from './LocalVideoTvPlayer.tsx';
 import { isLocalVideoRef, localVideoName } from '../utils/localVideoFolder.ts';
+import { getVideoSources } from '../utils/tvSlideVideo.ts';
 import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
@@ -67,10 +68,22 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, fullscreen = false }) 
     );
   }
 
-  if (t === 'video' && slide.mediaUrl) {
-    const isYoutube = /youtube\.com|youtu\.be/.test(slide.mediaUrl);
+  if (t === 'video') {
+    const sources = getVideoSources(slide);
+    const mediaUrl = sources[0] ?? slide.mediaUrl?.trim() ?? null;
+    if (!mediaUrl) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <p className="text-xl font-black text-amber-300">Vídeo não configurado</p>
+          <p className="max-w-lg text-sm font-semibold text-zinc-400">
+            No painel de gestão, abra o slide de vídeo e adicione pelo menos um arquivo na rotação.
+          </p>
+        </div>
+      );
+    }
+    const isYoutube = /youtube\.com|youtu\.be/.test(mediaUrl);
     if (isYoutube) {
-      const id = extractYoutubeId(slide.mediaUrl);
+      const id = extractYoutubeId(mediaUrl);
       if (!id) {
         return (
           <div className="flex-1 flex items-center justify-center text-red-400/90 font-bold px-6">
@@ -95,10 +108,10 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, fullscreen = false }) 
       );
     }
     const videoFit = slide.mediaObjectFit ?? 'contain';
-    const player = isLocalVideoRef(slide.mediaUrl) ? (
-      <LocalVideoTvPlayer name={localVideoName(slide.mediaUrl)} objectFit={videoFit} />
+    const player = isLocalVideoRef(mediaUrl) ? (
+      <LocalVideoTvPlayer name={localVideoName(mediaUrl)} objectFit={videoFit} />
     ) : (
-      <UploadedVideoTvPlayer src={slide.mediaUrl} objectFit={videoFit} />
+      <UploadedVideoTvPlayer src={mediaUrl} objectFit={videoFit} />
     );
     if (fullscreen) {
       return <div className="absolute inset-0 bg-black">{player}</div>;
