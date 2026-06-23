@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import YoutubeTvPlayer from './YoutubeTvPlayer.tsx';
 import UploadedVideoTvPlayer from './UploadedVideoTvPlayer.tsx';
 import LocalVideoTvPlayer from './LocalVideoTvPlayer.tsx';
 import { isLocalVideoRef, localVideoName } from '../utils/localVideoFolder.ts';
-import { getVideoSources } from '../utils/tvSlideVideo.ts';
+import { getVideoSources, resolveActiveVideoIndex } from '../utils/tvSlideVideo.ts';
 import type { TvSlide } from '../types.ts';
 
 interface TvSlidePageProps {
@@ -45,6 +45,92 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
+/** Reproduz a playlist do slide: respeita rotação do App e avança ao terminar cada vídeo. */
+const TvVideoSlideContent: React.FC<{ slide: TvSlide; fullscreen: boolean }> = ({ slide, fullscreen }) => {
+  const sources = useMemo(() => getVideoSources(slide), [slide]);
+  const startIndex = useMemo(() => resolveActiveVideoIndex(slide), [slide]);
+  const [index, setIndex] = useState(startIndex);
+  const hasPlaylist = sources.length > 1;
+
+  useEffect(() => {
+    setIndex(startIndex);
+  }, [slide.id, startIndex, sources.join('|')]);
+
+  const mediaUrl = sources[index] ?? sources[0] ?? slide.mediaUrl?.trim() ?? null;
+
+  if (!mediaUrl) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+        <p className="text-xl font-black text-amber-300">Vídeo não configurado</p>
+        <p className="max-w-lg text-sm font-semibold text-zinc-400">
+          No painel de gestão, abra o slide de vídeo e adicione pelo menos um arquivo na rotação.
+        </p>
+      </div>
+    );
+  }
+
+  const advancePlaylist = () => {
+    if (!hasPlaylist) return;
+    setIndex((i) => (i + 1) % sources.length);
+  };
+
+  const isYoutube = /youtube\.com|youtu\.be/.test(mediaUrl);
+  if (isYoutube) {
+    const id = extractYoutubeId(mediaUrl);
+    if (!id) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-red-400/90 font-bold px-6">
+          Link do YouTube inválido
+        </div>
+      );
+    }
+    if (fullscreen) {
+      return (
+        <div className="absolute inset-0 bg-black">
+          <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
+        </div>
+      );
+    }
+    return (
+      <div className="relative flex-1 min-h-0 w-full flex flex-col">
+        <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
+        </div>
+      </div>
+    );
+  }
+
+  const videoFit = slide.mediaObjectFit ?? 'contain';
+  const player = isLocalVideoRef(mediaUrl) ? (
+    <LocalVideoTvPlayer
+      key={mediaUrl}
+      name={localVideoName(mediaUrl)}
+      objectFit={videoFit}
+      loop={!hasPlaylist}
+      onEnded={hasPlaylist ? advancePlaylist : undefined}
+    />
+  ) : (
+    <UploadedVideoTvPlayer
+      key={mediaUrl}
+      src={mediaUrl}
+      objectFit={videoFit}
+      loop={!hasPlaylist}
+      onEnded={hasPlaylist ? advancePlaylist : undefined}
+    />
+  );
+
+  if (fullscreen) {
+    return <div className="absolute inset-0 bg-black">{player}</div>;
+  }
+  return (
+    <div className="relative flex-1 min-h-0 w-full flex flex-col">
+      <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+        {player}
+      </div>
+    </div>
+  );
+};
+
 const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, fullscreen = false }) => {
   const t = slide.slideType;
 
@@ -69,60 +155,7 @@ const TvSlidePage: React.FC<TvSlidePageProps> = ({ slide, fullscreen = false }) 
   }
 
   if (t === 'video') {
-    const sources = getVideoSources(slide);
-    const mediaUrl = sources[0] ?? slide.mediaUrl?.trim() ?? null;
-    if (!mediaUrl) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
-          <p className="text-xl font-black text-amber-300">Vídeo não configurado</p>
-          <p className="max-w-lg text-sm font-semibold text-zinc-400">
-            No painel de gestão, abra o slide de vídeo e adicione pelo menos um arquivo na rotação.
-          </p>
-        </div>
-      );
-    }
-    const isYoutube = /youtube\.com|youtu\.be/.test(mediaUrl);
-    if (isYoutube) {
-      const id = extractYoutubeId(mediaUrl);
-      if (!id) {
-        return (
-          <div className="flex-1 flex items-center justify-center text-red-400/90 font-bold px-6">
-            Link do YouTube inválido
-          </div>
-        );
-      }
-      if (fullscreen) {
-        return (
-          <div className="absolute inset-0 bg-black">
-            <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
-          </div>
-        );
-      }
-      return (
-        <div className="relative flex-1 min-h-0 w-full flex flex-col">
-          {/* Altura mínima em vh: com 100% do pai ainda não calculado, min(100%,70vh) virava 0 e o iframe não carregava direito. */}
-          <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
-            <YoutubeTvPlayer videoId={id} title={slide.title || 'Vídeo'} />
-          </div>
-        </div>
-      );
-    }
-    const videoFit = slide.mediaObjectFit ?? 'contain';
-    const player = isLocalVideoRef(mediaUrl) ? (
-      <LocalVideoTvPlayer name={localVideoName(mediaUrl)} objectFit={videoFit} />
-    ) : (
-      <UploadedVideoTvPlayer src={mediaUrl} objectFit={videoFit} />
-    );
-    if (fullscreen) {
-      return <div className="absolute inset-0 bg-black">{player}</div>;
-    }
-    return (
-      <div className="relative flex-1 min-h-0 w-full flex flex-col">
-        <div className="relative flex-1 min-h-[50vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-          {player}
-        </div>
-      </div>
-    );
+    return <TvVideoSlideContent slide={slide} fullscreen={fullscreen} />;
   }
 
   if (t === 'goal') {

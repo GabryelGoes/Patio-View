@@ -4,6 +4,9 @@ type UploadedVideoTvPlayerProps = {
   src: string;
   className?: string;
   objectFit?: 'contain' | 'cover' | 'fill';
+  /** Padrão true; desligue quando houver playlist para avançar no onEnded. */
+  loop?: boolean;
+  onEnded?: () => void;
 };
 
 function objectFitClass(fit: UploadedVideoTvPlayerProps['objectFit']): string {
@@ -25,6 +28,8 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
   src,
   className = 'absolute inset-0 h-full w-full',
   objectFit = 'contain',
+  loop = true,
+  onEnded,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -94,9 +99,10 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
       playsInline
       autoPlay
       muted
-      loop
+      loop={loop}
       preload="auto"
       controls={false}
+      onEnded={onEnded}
     />
   );
 };

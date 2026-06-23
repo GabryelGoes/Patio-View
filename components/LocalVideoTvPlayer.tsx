@@ -12,6 +12,8 @@ import {
 type LocalVideoTvPlayerProps = {
   name: string;
   objectFit?: 'contain' | 'cover' | 'fill';
+  loop?: boolean;
+  onEnded?: () => void;
 };
 
 type Status = 'loading' | 'ready' | 'unsupported' | 'needs-video' | 'no-permission';
@@ -36,7 +38,7 @@ const Notice: React.FC<{
   </div>
 );
 
-const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit }) => {
+const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit, loop, onEnded }) => {
   const folder = useVideoFolder();
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('loading');
@@ -90,7 +92,7 @@ const LocalVideoTvPlayer: React.FC<LocalVideoTvPlayerProps> = ({ name, objectFit
   };
 
   if (status === 'ready' && url) {
-    return <UploadedVideoTvPlayer src={url} objectFit={objectFit} />;
+    return <UploadedVideoTvPlayer src={url} objectFit={objectFit} loop={loop} onEnded={onEnded} />;
   }
 
   if (status === 'unsupported') {
