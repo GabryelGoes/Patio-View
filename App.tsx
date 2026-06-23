@@ -400,14 +400,6 @@ const App: React.FC = () => {
   return (
     <div className="h-screen w-screen bg-black flex flex-col p-4 pb-6 overflow-hidden select-none">
       {settingsOpen && <TvSettingsPanel onClose={() => setSettingsOpen(false)} />}
-      {fullscreen.supported && fullscreen.needsPrompt && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[850] flex justify-center px-4">
-          <div className="rounded-2xl border border-[#00c247]/40 bg-zinc-950/95 px-5 py-3 text-center shadow-lg backdrop-blur-sm">
-            <p className="text-sm font-black uppercase tracking-[0.15em] text-[#00c247]">Tela cheia</p>
-            <p className="mt-1 text-xs font-semibold text-zinc-300">Toque em qualquer lugar para esconder a barra do navegador</p>
-          </div>
-        </div>
-      )}
       {isFullscreenMedia && displaySlide && (
         <div className="fixed inset-0 z-[60] bg-black">
           <TvSlidePage key={displaySlide.mediaUrl ?? displaySlide.id} slide={displaySlide} fullscreen />
