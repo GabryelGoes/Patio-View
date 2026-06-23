@@ -110,6 +110,7 @@ const App: React.FC = () => {
   const chimeBannerTimerRef = useRef<number | null>(null);
   const videoVisitCounterRef = useRef<Record<string, number>>({});
   const [videoVisitVersion, setVideoVisitVersion] = useState(0);
+  const prevPageRef = useRef<number | null>(null);
 
   const loadData = async () => {
     try {
@@ -292,15 +293,23 @@ const App: React.FC = () => {
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
   const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
 
+  /** Ao sair do slide de vídeo, avança o índice para a próxima visita (1 vídeo por passagem na paginação). */
   useEffect(() => {
-    if (!isSlidePage || !currentSlide || currentSlide.slideType !== 'video') return;
-    if (getVideoSources(currentSlide).length <= 1) return;
-    const slideId = currentSlide.id;
-    return () => {
-      videoVisitCounterRef.current[slideId] = (videoVisitCounterRef.current[slideId] ?? 0) + 1;
-      setVideoVisitVersion((v) => v + 1);
-    };
-  }, [page, isSlidePage, currentSlide?.id, currentSlide?.slideType, currentSlide?.mediaPlaylist, currentSlide?.mediaUrl]);
+    if (!data?.tvSlides?.length) return;
+    const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
+
+    if (prevPageRef.current !== null && prevPageRef.current !== page) {
+      const prev = prevPageRef.current;
+      if (prev >= vp) {
+        const leftSlide = data.tvSlides[prev - vp];
+        if (leftSlide?.slideType === 'video' && getVideoSources(leftSlide).length > 1) {
+          videoVisitCounterRef.current[leftSlide.id] = (videoVisitCounterRef.current[leftSlide.id] ?? 0) + 1;
+          setVideoVisitVersion((v) => v + 1);
+        }
+      }
+    }
+    prevPageRef.current = page;
+  }, [page, data?.vehicles?.length, data?.tvSlides]);
 
   const displaySlide = useMemo(() => {
     if (!currentSlide) return null;
@@ -402,7 +411,11 @@ const App: React.FC = () => {
       {settingsOpen && <TvSettingsPanel onClose={() => setSettingsOpen(false)} />}
       {isFullscreenMedia && displaySlide && (
         <div className="fixed inset-0 z-[60] bg-black">
-          <TvSlidePage key={displaySlide.mediaUrl ?? displaySlide.id} slide={displaySlide} fullscreen />
+          <TvSlidePage
+            key={`${displaySlide.id}-${displaySlide.mediaUrl ?? 'empty'}-${videoVisitVersion}`}
+            slide={displaySlide}
+            fullscreen
+          />
         </div>
       )}
       {chimeBanner && (
@@ -583,7 +596,10 @@ const App: React.FC = () => {
         <main className="flex-1 min-h-0" />
       ) : isSlidePage && displaySlide ? (
         <main className="flex-1 flex flex-col min-h-0">
-          <TvSlidePage key={displaySlide.mediaUrl ?? displaySlide.id} slide={displaySlide} />
+          <TvSlidePage
+            key={`${displaySlide.id}-${displaySlide.mediaUrl ?? 'empty'}-${videoVisitVersion}`}
+            slide={displaySlide}
+          />
         </main>
       ) : (
         <main className="flex-1 grid grid-rows-6 gap-3 min-h-0">
