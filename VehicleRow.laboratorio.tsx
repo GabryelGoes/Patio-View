@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
+import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -137,7 +138,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   /** Produto encaminhado da oficina: aro âmbar (não sobrepõe o aro de garantia). */
   const showWorkshopRing = vehicle.fromWorkshop === true && !showGarantiaRing;
 
-  const shouldShake = isAlerting && (s.includes('avaliação') && s.includes('aguardando'));
+  const shouldShake = isAlerting && isAwaitingEvaluationStage(vehicle.stage);
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**

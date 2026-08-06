@@ -15,6 +15,7 @@ import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
 import { useTvFullscreen } from './hooks/useTvFullscreen.ts';
 import { getVideoSources, resolveVideoSlideForVisit } from './utils/tvSlideVideo.ts';
+import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
 import { useTvSettings, setTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
 import {
@@ -111,6 +112,10 @@ const App: React.FC = () => {
   const videoVisitCounterRef = useRef<Record<string, number>>({});
   const [videoVisitVersion, setVideoVisitVersion] = useState(0);
   const prevPageRef = useRef<number | null>(null);
+  const vehiclesRef = useRef(data?.vehicles);
+  vehiclesRef.current = data?.vehicles;
+  const evaluationAlertRef = useRef(settings.evaluationAlert);
+  evaluationAlertRef.current = settings.evaluationAlert;
 
   const loadData = async () => {
     try {
@@ -190,41 +195,82 @@ const App: React.FC = () => {
     /** Atualização periódica do quadro — intervalo configurável (reduz invocações na Vercel). */
     const refreshInterval = setInterval(loadData, settings.refreshSeconds * 1000);
     return () => clearInterval(refreshInterval);
-  }, [soundEnabled, settings.refreshSeconds]);
+  }, [settings.refreshSeconds]);
 
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isEvaluationAlertActive && soundEnabled && settings.sounds.evaluationAlert) {
       void playEventSound('evaluationAlert');
       interval = setInterval(() => {
         void playEventSound('evaluationAlert');
       }, 1800);
     }
-    return () => { if (interval) clearInterval(interval); };
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isEvaluationAlertActive, soundEnabled, settings.sounds.evaluationAlert]);
 
+  /**
+   * Alerta de avaliação: NÃO depende de `data` no efeito — senão o intervalo
+   * reinicia a cada refresh do quadro e nunca chega a disparar.
+   */
   useEffect(() => {
-    if (!settings.evaluationAlert.enabled) return;
+    if (!settings.evaluationAlert.enabled) {
+      setIsEvaluationAlertActive(false);
+      return;
+    }
+
+    let offTimer: number | null = null;
+
     const triggerAlert = () => {
-      const hasPending = data?.vehicles.some(v => 
-        v.stage.toLowerCase().includes('avaliação') && v.stage.toLowerCase().includes('aguardando')
+      const vehicles = vehiclesRef.current ?? [];
+      const hasPending = vehicles.some((v) => isAwaitingEvaluationStage(v.stage));
+      if (!hasPending) return;
+      setIsEvaluationAlertActive(true);
+      if (offTimer != null) window.clearTimeout(offTimer);
+      offTimer = window.setTimeout(
+        () => setIsEvaluationAlertActive(false),
+        Math.max(3, evaluationAlertRef.current.onScreenSeconds) * 1000
       );
-      if (hasPending) {
-        setIsEvaluationAlertActive(true);
-        setTimeout(() => setIsEvaluationAlertActive(false), settings.evaluationAlert.onScreenSeconds * 1000);
-      }
     };
 
-    const alertInterval = setInterval(triggerAlert, settings.evaluationAlert.intervalMinutes * 60 * 1000);
-    return () => { clearInterval(alertInterval); };
-  }, [data, settings.evaluationAlert.enabled, settings.evaluationAlert.intervalMinutes, settings.evaluationAlert.onScreenSeconds]);
+    // Primeira verificação rápida (não espera o intervalo inteiro).
+    const firstTimer = window.setTimeout(triggerAlert, 2500);
+    const alertInterval = window.setInterval(
+      triggerAlert,
+      Math.max(1, settings.evaluationAlert.intervalMinutes) * 60 * 1000
+    );
+
+    return () => {
+      window.clearTimeout(firstTimer);
+      window.clearInterval(alertInterval);
+      if (offTimer != null) window.clearTimeout(offTimer);
+    };
+  }, [settings.evaluationAlert.enabled, settings.evaluationAlert.intervalMinutes]);
+
+  /** Botão "Testar alerta agora" no painel de configurações. */
+  useEffect(() => {
+    const onTest = () => {
+      const vehicles = vehiclesRef.current ?? [];
+      const hasPending = vehicles.some((v) => isAwaitingEvaluationStage(v.stage));
+      if (!hasPending) {
+        window.alert('Nenhum veículo em "Aguardando avaliação" no quadro agora.');
+        return;
+      }
+      setIsEvaluationAlertActive(true);
+      window.setTimeout(
+        () => setIsEvaluationAlertActive(false),
+        Math.max(3, evaluationAlertRef.current.onScreenSeconds) * 1000
+      );
+    };
+    window.addEventListener('tv-test-evaluation-alert', onTest);
+    return () => window.removeEventListener('tv-test-evaluation-alert', onTest);
+  }, []);
 
   useEffect(() => {
     if (isEvaluationAlertActive && data) {
       if (data.tvSlides?.some((sl) => sl.pinImmediate)) return;
-      const firstPendingIndex = data.vehicles.findIndex(v => 
-        v.stage.toLowerCase().includes('avaliação') && v.stage.toLowerCase().includes('aguardando')
-      );
+      const firstPendingIndex = data.vehicles.findIndex((v) => isAwaitingEvaluationStage(v.stage));
       if (firstPendingIndex !== -1) {
         setPage(Math.floor(firstPendingIndex / CARS_PER_PAGE));
       }
@@ -259,7 +305,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!data) return;
     if (isPinnedMode) return;
-    const hasActiveOverlay = celebrationQueue.length > 0 || pecasDisponiveisQueue.length > 0 || garantiaQueue.length > 0 || !!activeHighlightId || isEvaluationAlertActive;
+    if (settingsOpen) return;
+    const hasActiveOverlay =
+      celebrationQueue.length > 0 ||
+      pecasDisponiveisQueue.length > 0 ||
+      garantiaQueue.length > 0 ||
+      !!activeHighlightId ||
+      isEvaluationAlertActive;
     if (hasActiveOverlay) return;
 
     const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
@@ -267,26 +319,31 @@ const App: React.FC = () => {
     const total = vp + sc;
     if (total <= 1) return;
 
-    let ms = settings.pageSeconds * 1000;
+    let ms = Math.max(3000, settings.pageSeconds * 1000);
     if (page >= vp && page < vp + sc && data.tvSlides) {
       const slide = data.tvSlides[page - vp];
-      ms = Math.min(120000, Math.max(5000, (slide.durationSeconds || 10) * 1000));
+      const slideSec = Number(slide.durationSeconds);
+      // Slides da gestão usam a duração própria; se inválida, cai no tempo da Exibição.
+      if (Number.isFinite(slideSec) && slideSec >= 3) {
+        ms = Math.min(120000, Math.max(3000, slideSec * 1000));
+      }
     }
 
-    const id = setTimeout(() => {
+    const id = window.setTimeout(() => {
       setPage((prev) => (prev + 1) % total);
     }, ms);
-    return () => clearTimeout(id);
+    return () => window.clearTimeout(id);
   }, [
     page,
     data?.vehicles?.length,
-    data?.tvSlides?.length,
+    data?.tvSlides,
     celebrationQueue.length,
     pecasDisponiveisQueue.length,
     garantiaQueue.length,
     activeHighlightId,
     isEvaluationAlertActive,
     isPinnedMode,
+    settingsOpen,
     settings.pageSeconds,
   ]);
 

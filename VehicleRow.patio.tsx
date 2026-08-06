@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
+import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -176,7 +177,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   /** Na TV: exibir aro vermelho só quando o veículo tem a etiqueta garantia E não está na etapa Garantia (quando está na etapa Garantia não exibimos o aro). Se remover a etiqueta no modal do sistema, garantiaTag vem false e o aro some. */
   const showGarantiaRing = vehicle.garantiaTag === true && !isGarantia;
 
-  const shouldShake = isAlerting && (s.includes('avaliação') && s.includes('aguardando'));
+  const shouldShake = isAlerting && isAwaitingEvaluationStage(vehicle.stage);
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**

@@ -58,15 +58,18 @@ const NumberSelect: React.FC<{ value: number; options: number[]; unit: string; o
   options,
   unit,
   onChange,
-}) => (
-  <select value={value} onChange={(e) => onChange(Number(e.target.value))} className={selectCls}>
-    {options.map((o) => (
-      <option key={o} value={o}>
-        {o} {unit}
-      </option>
-    ))}
-  </select>
-);
+}) => {
+  const opts = options.includes(value) ? options : [...options, value].sort((a, b) => a - b);
+  return (
+    <select value={value} onChange={(e) => onChange(Number(e.target.value))} className={selectCls}>
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {o} {unit}
+        </option>
+      ))}
+    </select>
+  );
+};
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="rounded-2xl border border-zinc-700/70 bg-zinc-900/60 p-3">
@@ -212,15 +215,25 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
                   onChange={(v) => patchEval({ onScreenSeconds: v })}
                 />
               </Row>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('tv-test-evaluation-alert'))}
+                className="rounded-xl border border-[#00c247]/40 bg-[#009c3b]/15 px-3 py-2 text-xs font-black uppercase tracking-wider text-[#00c247] hover:bg-[#009c3b]/25"
+              >
+                Testar alerta agora
+              </button>
             </Section>
 
             <Section title="Exibição">
               <Row label="Atualizar quadro">
                 <NumberSelect value={settings.refreshSeconds} options={[5, 10, 15, 20, 30, 60]} unit="s" onChange={(v) => patch({ refreshSeconds: v })} />
               </Row>
-              <Row label="Tempo por página">
+              <Row label="Tempo por página (pátio)">
                 <NumberSelect value={settings.pageSeconds} options={[5, 7, 10, 12, 15, 20, 30]} unit="s" onChange={(v) => patch({ pageSeconds: v })} />
               </Row>
+              <p className="-mt-1 text-[10px] font-semibold leading-snug text-zinc-500">
+                Vale para as páginas de veículos. Slides/avisos/vídeos usam a duração definida no painel de gestão da TV.
+              </p>
               <Row label="Duração do destaque">
                 <NumberSelect value={settings.highlightSeconds} options={[5, 8, 10, 12, 15]} unit="s" onChange={(v) => patch({ highlightSeconds: v })} />
               </Row>
