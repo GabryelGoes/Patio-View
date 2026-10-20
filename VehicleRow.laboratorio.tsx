@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
 import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
+import { AwaitingEvalTimer } from './components/AwaitingEvalTimer.tsx';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -138,7 +139,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   /** Produto encaminhado da oficina: aro âmbar (não sobrepõe o aro de garantia). */
   const showWorkshopRing = vehicle.fromWorkshop === true && !showGarantiaRing;
 
-  const shouldShake = isAlerting && isAwaitingEvaluationStage(vehicle.stage);
+  const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
+  const shouldShake = isAlerting && awaitingEval;
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**
@@ -219,7 +221,9 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
+          {awaitingEval ? (
+            <AwaitingEvalTimer since={vehicle.activityAt} />
+          ) : isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia ? (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
@@ -228,7 +232,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
               </div>
             </div>
-          )}
+          ) : null}
           
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (

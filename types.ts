@@ -29,6 +29,8 @@ export interface Vehicle {
   rawDueDate?: Date; // Data original para cálculos
   mechanic: string;
   lastActivity: string;
+  /** ISO da última atualização da OS — base do cronômetro na etapa Aguardando Avaliação. */
+  activityAt?: string | null;
   /** Etiqueta de garantia (vem da API): persiste em qualquer etapa até remover no modal do sistema principal. Na TV, o aro vermelho só aparece quando garantiaTag é true e o veículo NÃO está na etapa Garantia. */
   garantiaTag?: boolean;
   /** Compartimento da bancada do laboratório (1..24). NULL/undefined = fora da bancada. */

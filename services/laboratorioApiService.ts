@@ -263,6 +263,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
             (row.assigned_technician_name || row.assigned_technician || 'Laboratório').trim() ||
             'Laboratório',
           lastActivity: formatLastActivity(row.updated_at ?? row.created_at),
+          activityAt: row.updated_at ?? row.created_at ?? null,
           garantiaTag: row.garantia_tag === true,
           benchSlot:
             row.bench_slot != null && Number.isFinite(Number(row.bench_slot))
