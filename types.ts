@@ -28,6 +28,8 @@ export interface Vehicle {
   deliveryDate: string;
   rawDueDate?: Date; // Data original para cálculos
   mechanic: string;
+  /** Há técnico atribuído. Sem isso, a etapa Aguardando Avaliação mostra o cronômetro na coluna do mecânico. */
+  mechanicAssigned?: boolean;
   lastActivity: string;
   /** ISO da última atualização da OS — base do cronômetro na etapa Aguardando Avaliação. */
   activityAt?: string | null;

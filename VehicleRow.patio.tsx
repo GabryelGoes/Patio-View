@@ -256,8 +256,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {awaitingEval ? <AwaitingEvalTimer since={vehicle.activityAt} /> : null}
-          
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado || isPecasDisponiveis ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
                <div className="flex items-center justify-center w-full gap-2 -translate-x-[15%]">
@@ -300,8 +298,12 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex items-center">
-        <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+      <div className="w-[14%] border-l border-current/10 pl-4 pr-2 h-full flex items-center min-w-0">
+        {awaitingEval && !vehicle.mechanicAssigned ? (
+          <AwaitingEvalTimer since={vehicle.activityAt} />
+        ) : (
+          <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+        )}
       </div>
 
       <style>{`

@@ -180,6 +180,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
           : (row.vehicle_model || row.module_identification || 'Veículo');
         const deliveryDate = formatDeliveryDate(row.delivery_date);
         const rawDue = parseDeliveryDateLocal(row.delivery_date);
+        const assignedMechanic = (row.assigned_technician_name || row.assigned_technician || '').trim();
 
         return {
           id: row.id,
@@ -189,7 +190,8 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
           stage: mapStatusToStage(row.status),
           deliveryDate,
           rawDueDate: rawDue,
-          mechanic: (row.assigned_technician_name || row.assigned_technician || 'Pátio').trim() || 'Pátio',
+          mechanic: assignedMechanic || 'Pátio',
+          mechanicAssigned: assignedMechanic.length > 0,
           lastActivity: formatLastActivity(row.updated_at ?? row.created_at),
           activityAt: row.updated_at ?? row.created_at ?? null,
           garantiaTag: row.garantia_tag === true,

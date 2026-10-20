@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
 import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
-import { AwaitingEvalTimer } from './components/AwaitingEvalTimer.tsx';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -219,9 +218,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
             </div>
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
-          
-          {awaitingEval ? <AwaitingEvalTimer since={vehicle.activityAt} /> : null}
-          
+
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
                <div className="flex items-center justify-center w-full gap-2 -translate-x-[15%]">
