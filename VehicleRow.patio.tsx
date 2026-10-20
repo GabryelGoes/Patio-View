@@ -168,7 +168,6 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const isFaseDeTeste = s.includes('teste');
   const isAprovado = s.includes('aprovado');
   const isEmServico = s.includes('serviço');
-  const isAguardando = s.startsWith('aguardando');
   const isFinalizado = s.includes('finalizado');
   const isAvaliacaoTecnica = s.includes('avaliação técnica') || s.includes('avaliacao tecnica');
   const isGarantia = s.includes('garantia');
@@ -257,18 +256,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {awaitingEval ? (
-            <AwaitingEvalTimer since={vehicle.activityAt} />
-          ) : isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis ? (
-            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
-                <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-              </div>
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
-                <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-              </div>
-            </div>
-          ) : null}
+          {awaitingEval ? <AwaitingEvalTimer since={vehicle.activityAt} /> : null}
           
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado || isPecasDisponiveis ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
