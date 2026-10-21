@@ -3,6 +3,7 @@
  */
 
 import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal } from '../types';
+import { readableMechanicName } from '../utils/mechanicName';
 import { normalizeTvChimeConfig, type TvChimeScheduleConfig } from '../utils/tvChimeSchedule';
 
 const getEnv = (key: string): string =>
@@ -250,7 +251,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         const model = formatVehicleDisplay(row);
         const deliveryDate = formatDeliveryDate(row.delivery_date);
         const rawDue = parseDeliveryDateLocal(row.delivery_date);
-        const assignedMechanic = (row.assigned_technician_name || row.assigned_technician || '').trim();
+        const assignedMechanic = readableMechanicName(row.assigned_technician_name, row.assigned_technician);
 
         return {
           id: row.id,

@@ -4,10 +4,9 @@ import { formatStageWait } from '../utils/stageWait.ts';
 const RED = '#ff1a1a';
 
 /**
- * Cronômetro da etapa Aguardando Avaliação.
- * A cor vai em style (não em classe arbitrária do Tailwind CDN): o card dessa
- * etapa é quase preto com texto cinza, e uma classe que o CDN não gera deixa
- * o relógio invisível.
+ * Tempo em vermelho vivo na coluna Mecânico (14%).
+ * A cor fica no style: o card de Aguardando Avaliação é quase preto com texto cinza,
+ * e uma classe do Tailwind CDN que não gera herda esse cinza.
  */
 export const AwaitingEvalTimer: React.FC<{ since?: string | null }> = ({ since }) => {
   const [now, setNow] = useState(() => Date.now());
@@ -18,39 +17,39 @@ export const AwaitingEvalTimer: React.FC<{ since?: string | null }> = ({ since }
   }, []);
 
   return (
-    <span className="inline-flex max-w-full shrink-0 items-center gap-2.5" style={{ color: RED }}>
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1.5" style={{ color: RED }}>
       <span
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
         style={{
-          border: `3px solid ${RED}`,
-          boxShadow: '0 0 14px rgba(255, 26, 26, 0.95)',
+          border: `2px solid ${RED}`,
+          boxShadow: '0 0 10px rgba(255, 26, 26, 0.95)',
         }}
         aria-hidden
       >
-        <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-1/2 -translate-y-1/2 animate-clock-hand-slow">
+        <span className="absolute left-1/2 top-1/2 h-0 w-0 animate-clock-hand-slow">
           <span
-            className="absolute bottom-0 left-1/2 h-[8px] w-[3px] -translate-x-1/2 origin-bottom rounded-full"
+            className="absolute bottom-0 left-1/2 h-[5px] w-[2px] -translate-x-1/2 origin-bottom rounded-full"
             style={{ backgroundColor: RED }}
           />
         </span>
-        <span className="absolute left-1/2 top-1/2 h-0 w-0 -translate-x-1/2 -translate-y-1/2 animate-clock-hand-fast">
+        <span className="absolute left-1/2 top-1/2 h-0 w-0 animate-clock-hand-fast">
           <span
-            className="absolute bottom-0 left-1/2 h-[11px] w-[3px] -translate-x-1/2 origin-bottom rounded-full"
+            className="absolute bottom-0 left-1/2 h-[7px] w-[2px] -translate-x-1/2 origin-bottom rounded-full"
             style={{ backgroundColor: RED }}
           />
         </span>
       </span>
       <span
-        className="truncate tabular-nums"
         style={{
           color: RED,
-          fontSize: '2rem',
+          fontSize: '1.35rem',
           fontWeight: 900,
           fontStyle: 'normal',
           textTransform: 'none',
           letterSpacing: '-0.03em',
           lineHeight: 1,
-          textShadow: '0 0 16px rgba(255, 26, 26, 0.95)',
+          whiteSpace: 'nowrap',
+          textShadow: '0 0 12px rgba(255, 26, 26, 0.95)',
         }}
       >
         {formatStageWait(since, now)}
