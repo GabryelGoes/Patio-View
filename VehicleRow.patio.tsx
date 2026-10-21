@@ -319,7 +319,12 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         {showEvalTimer ? (
           <AwaitingEvalTimer since={vehicle.activityAt} />
         ) : (
-          <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+          <p
+            className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2]"
+            style={awaitingEval ? { color: '#ff1a1a', opacity: 1 } : { opacity: 0.9 }}
+          >
+            {vehicle.mechanic}
+          </p>
         )}
       </div>
 
