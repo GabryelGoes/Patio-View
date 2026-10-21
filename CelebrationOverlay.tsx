@@ -1,7 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
 import { playEventSound } from './utils/tvSounds.ts';
+import { celebrationVehicleParts, getVehicleBrandLogoUrl } from './utils/vehicleBrandLogo.ts';
 
 interface CelebrationOverlayProps {
   vehicle: Vehicle;
@@ -10,10 +10,28 @@ interface CelebrationOverlayProps {
   durationMs?: number;
 }
 
-const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({ vehicle, onComplete, soundEnabled, durationMs = 7000 }) => {
+function plateLabel(plate: string): string {
+  const clean = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return clean || '-------';
+}
+
+const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
+  vehicle,
+  onComplete,
+  soundEnabled,
+  durationMs = 7000,
+}) => {
   const [isExiting, setIsExiting] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+
+  const parts = celebrationVehicleParts(vehicle.brand, vehicle.model);
+  const logoUrl = logoFailed ? null : getVehicleBrandLogoUrl(parts.brand);
+  const modelText = (parts.model || 'Veículo').toLocaleUpperCase('pt-BR');
+  const plateText = plateLabel(vehicle.plate);
+  const modelSize = modelText.length > 18 ? '3.2vh' : modelText.length > 12 ? '4.4vh' : '5.5vh';
+  const plateSize = plateText.length > 8 ? '2.7vh' : '3.6vh';
 
   useEffect(() => {
     if (soundEnabled) void playEventSound('budgetApproved');
@@ -29,66 +47,297 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({ vehicle, onComp
   }, [soundEnabled, durationMs]);
 
   return (
-    <div className={`fixed inset-0 z-[100] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>
-      <div className="absolute inset-0 bg-[#d35400] flex flex-col items-center justify-center animate-drop-bounce overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,140,0,0.8)_0%,rgba(139,69,19,1)_100%)]" />
-        
-        <div className="relative z-10 text-center flex flex-col items-center gap-6">
-          <h1 className="text-white font-black italic text-[10vw] uppercase leading-[0.85] text-depth-3d animate-title-entry">
-            ORÇAMENTO<br/>APROVADO
-          </h1>
-          
-          <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[40px] border border-white/20 w-full max-w-4xl shadow-2xl">
-            <h2 className="text-white font-black text-6xl italic uppercase leading-none">{vehicle.model}</h2>
-            <p className="text-white/70 font-bold text-2xl tracking-[0.3em] mt-2 uppercase">{vehicle.client}</p>
-          </div>
+    <div className={`cele-shell${isExiting ? ' is-exiting' : ''}`}>
+      <div className="cele-scene">
+        <svg className="cele-arcs" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <linearGradient id="celeArc" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ffd27a" />
+              <stop offset="38%" stopColor="#ff8a1c" />
+              <stop offset="100%" stopColor="#ff4a00" />
+            </linearGradient>
+            <filter id="celeArcGlow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="16" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g fill="none" stroke="url(#celeArc)" strokeLinecap="round" filter="url(#celeArcGlow)">
+            <path d="M 310 -70 C 150 30, 40 150, -70 340" strokeWidth="92" />
+            <path d="M 310 -70 C 150 30, 40 150, -70 340" strokeWidth="28" stroke="#ffb15a" />
+            <path d="M 1290 -70 C 1450 30, 1560 150, 1670 340" strokeWidth="92" />
+            <path d="M 1290 -70 C 1450 30, 1560 150, 1670 340" strokeWidth="28" stroke="#ffb15a" />
+            <path d="M -70 560 C 40 750, 150 860, 310 980" strokeWidth="92" />
+            <path d="M -70 560 C 40 750, 150 860, 310 980" strokeWidth="28" stroke="#ffb15a" />
+            <path d="M 1670 560 C 1560 750, 1450 860, 1290 980" strokeWidth="92" />
+            <path d="M 1670 560 C 1560 750, 1450 860, 1290 980" strokeWidth="28" stroke="#ffb15a" />
+          </g>
+        </svg>
 
-          <div className="flex items-center gap-6 mt-2">
-            <div className="bg-black/40 px-6 py-4 rounded-2xl border border-white/10">
-              <span className="text-orange-400 font-black text-[10px] tracking-widest uppercase block mb-1 opacity-70">MECÂNICO</span>
-              <span className="text-white font-black text-4xl italic uppercase">{vehicle.mechanic}</span>
-            </div>
+        <div className="cele-stack">
+          <svg className="cele-icon" viewBox="0 0 160 160" aria-hidden="true">
+            <defs>
+              <linearGradient id="celeIconBg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ff9a2e" />
+                <stop offset="52%" stopColor="#ff6a00" />
+                <stop offset="100%" stopColor="#f24d00" />
+              </linearGradient>
+              <filter id="celeIconShadow" x="-40%" y="-40%" width="180%" height="180%">
+                <feDropShadow dx="0" dy="12" stdDeviation="8" floodColor="#ff6a00" floodOpacity="0.55" />
+              </filter>
+            </defs>
+            <rect x="10" y="8" width="140" height="140" rx="34" fill="url(#celeIconBg)" filter="url(#celeIconShadow)" />
+            <rect x="50" y="36" width="54" height="72" rx="6" fill="#ffffff" />
+            <rect x="60" y="50" width="34" height="5" rx="2.5" fill="#ff7a12" />
+            <rect x="60" y="62" width="26" height="5" rx="2.5" fill="#ff7a12" />
+            <rect x="60" y="74" width="20" height="5" rx="2.5" fill="#ff7a12" />
+            <circle cx="100" cy="102" r="20" fill="#ffffff" />
+            <path
+              d="M90.5 102.5 l6.6 6.8 l13.2-14.2"
+              fill="none"
+              stroke="#f24d00"
+              strokeWidth="4.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
 
-            <div className="bg-white rounded-lg border-[4px] border-zinc-800 overflow-hidden shadow-2xl w-[220px]">
-              <div className="bg-[#003399] h-5 px-3 flex items-center justify-between">
-                <span className="text-white font-bold text-[8px] tracking-[0.4em]">BRASIL</span>
-                <div className="w-5 h-3 bg-[#009b3a] rounded-sm flex items-center justify-center border border-white/20">
-                  <div className="w-2 h-2 bg-yellow-400 rotate-45" />
+          <h1 className="cele-orcamento">ORÇAMENTO</h1>
+          <h1 className="cele-aprovado">APROVADO</h1>
+
+          <div className="cele-bar">
+            {logoUrl && (
+              <>
+                <div className="cele-logo">
+                  <img
+                    src={logoUrl}
+                    alt=""
+                    draggable={false}
+                    onError={() => setLogoFailed(true)}
+                  />
                 </div>
-              </div>
-              <div className="h-14 flex items-center justify-center bg-white">
-                <span className="text-black font-black text-[32px] font-mono tracking-tight uppercase leading-none">
-                  {vehicle.plate.replace('-', '')}
+                <span className="cele-sep" />
+              </>
+            )}
+            <p className="cele-model" style={{ fontSize: modelSize }}>{modelText}</p>
+            <div className="cele-plate" aria-label={`Placa ${plateText}`}>
+              <div className="cele-plate-top">
+                <span>BRASIL</span>
+                <span className="cele-flag" aria-hidden="true">
+                  <span className="cele-flag-diamond" />
+                  <span className="cele-flag-circle" />
                 </span>
               </div>
+              <div className="cele-plate-body" style={{ fontSize: plateSize }}>{plateText}</div>
             </div>
           </div>
         </div>
       </div>
       <style>{`
-        .text-depth-3d {
-          text-shadow: 
-            1px 1px 0px #8b4513,
-            2px 2px 0px #8b4513,
-            3px 3px 0px #8b4513,
-            4px 4px 0px #8b4513,
-            5px 5px 0px #8b4513,
-            6px 6px 0px #8b4513,
-            7px 7px 0px #8b4513,
-            8px 8px 0px #8b4513,
-            12px 12px 25px rgba(0,0,0,0.5);
+        .cele-shell {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          overflow: hidden;
+          transform: translateY(0);
+          transition: transform 1s cubic-bezier(0.7, 0, 0.3, 1);
         }
-        @keyframes title-entry {
-          0% { transform: scale(0.8) translateY(50px) rotateX(20deg); opacity: 0; }
-          100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
+        .cele-shell.is-exiting { transform: translateY(-100%); }
+        .cele-scene {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background:
+            radial-gradient(ellipse 48% 40% at -4% -6%, rgba(255, 130, 20, 0.55), transparent 62%),
+            radial-gradient(ellipse 48% 40% at 104% -6%, rgba(255, 110, 10, 0.5), transparent 62%),
+            radial-gradient(ellipse 46% 38% at -6% 108%, rgba(255, 110, 10, 0.48), transparent 64%),
+            radial-gradient(ellipse 46% 38% at 106% 108%, rgba(255, 100, 0, 0.42), transparent 64%),
+            #050302;
+          animation: cele-in 0.55s ease-out both;
         }
-        .animate-title-entry { animation: title-entry 1s cubic-bezier(0.17, 0.67, 0.83, 0.67) 0.3s forwards; opacity: 0; }
-        @keyframes drop-bounce { 
-          0% { transform: translateY(-110%); } 
-          45% { transform: translateY(0); } 
-          100% { transform: translateY(0); } 
+        .cele-arcs {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
         }
-        .animate-drop-bounce { animation: drop-bounce 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .cele-stack {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: min(92vw, 1600px);
+          transform: translateY(-1.2vh);
+        }
+        .cele-icon {
+          width: 16.8vh;
+          height: 16.8vh;
+          margin-bottom: 2.2vh;
+          filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+        }
+        .cele-orcamento,
+        .cele-aprovado {
+          margin: 0;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 900;
+          text-transform: uppercase;
+          line-height: 0.86;
+          text-align: center;
+        }
+        .cele-orcamento {
+          color: #ffffff;
+          font-size: 9.5vh;
+          letter-spacing: -0.015em;
+          text-shadow:
+            0 2px 0 rgba(0, 0, 0, 0.28),
+            0 12px 22px rgba(0, 0, 0, 0.45);
+        }
+        .cele-aprovado {
+          margin-top: 0.6vh;
+          font-size: 14.8vh;
+          letter-spacing: -0.035em;
+          background: linear-gradient(180deg, #ffc85a 0%, #fd982e 26%, #f56a12 64%, #fe5604 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          filter:
+            drop-shadow(0 0 10px rgba(255, 150, 40, 0.55))
+            drop-shadow(0 0 26px rgba(255, 90, 0, 0.42))
+            drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
+        }
+        .cele-bar {
+          margin-top: 4.6vh;
+          width: min(84vw, 1420px);
+          height: 16.2vh;
+          min-height: 132px;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          gap: 1.5vw;
+          padding: 0 1.5vw 0 1.8vw;
+          border-radius: 26px;
+          background: linear-gradient(180deg, rgba(62, 62, 62, 0.38) 0%, rgba(8, 8, 8, 0.72) 100%);
+          border: 1.5px solid rgba(255, 255, 255, 0.28);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.22),
+            0 16px 36px rgba(0, 0, 0, 0.45);
+          backdrop-filter: blur(16px);
+        }
+        .cele-logo {
+          width: 20vh;
+          height: 9vh;
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .cele-logo img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          object-position: center;
+        }
+        .cele-sep {
+          width: 1.5px;
+          height: 52%;
+          flex: 0 0 auto;
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+        }
+        .cele-model {
+          flex: 1 1 auto;
+          min-width: 0;
+          margin: 0;
+          padding-left: 0.3vw;
+          color: #ffffff;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 800;
+          letter-spacing: 0.045em;
+          line-height: 1;
+          text-transform: uppercase;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        }
+        .cele-plate {
+          flex: 0 0 auto;
+          width: 20vh;
+          height: 11vh;
+          display: flex;
+          flex-direction: column;
+          background: #ffffff;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 2px solid #1a1a1a;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+        }
+        .cele-plate-top {
+          height: 30%;
+          min-height: 18px;
+          background: #003399;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 0.7vh 0 0.85vh;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 800;
+          font-size: 1.15vh;
+          letter-spacing: 0.34em;
+          line-height: 1;
+        }
+        .cele-flag {
+          position: relative;
+          width: 2.1vh;
+          height: 1.45vh;
+          background: #009b3a;
+          border-radius: 1px;
+          flex: 0 0 auto;
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+        }
+        .cele-flag-diamond {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 68%;
+          height: 68%;
+          background: #ffdf00;
+          transform: translate(-50%, -50%) rotate(45deg);
+        }
+        .cele-flag-circle {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 34%;
+          height: 34%;
+          border-radius: 50%;
+          background: #002776;
+          transform: translate(-50%, -50%);
+        }
+        .cele-plate-body {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #111111;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 900;
+          letter-spacing: 0.03em;
+          line-height: 1;
+        }
+        @keyframes cele-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
       `}</style>
     </div>
   );

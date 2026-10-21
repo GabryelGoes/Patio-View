@@ -22,6 +22,8 @@ export type Stage =
 export interface Vehicle {
   id: string;
   model: string;
+  /** Marca (vehicle_brand). Usada na tela de orçamento aprovado para a logo. */
+  brand?: string | null;
   plate: string;
   client: string;
   stage: Stage;

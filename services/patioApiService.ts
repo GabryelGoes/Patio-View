@@ -43,6 +43,7 @@ interface ServiceOrderRow {
   os_number?: number;
   customer_id?: string;
   vehicle_model?: string | null;
+  vehicle_brand?: string | null;
   module_identification?: string | null;
   plate?: string | null;
   mileage_km?: number | null;
@@ -186,6 +187,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         return {
           id: row.id,
           model,
+          brand: row.vehicle_brand?.trim() || null,
           plate: row.plate ?? '---',
           client: customerName,
           stage: mapStatusToStage(row.status),
