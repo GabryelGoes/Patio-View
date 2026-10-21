@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { onTvAudioUnlock } from '../utils/tvSounds.ts';
 
 /** Origem do iframe do embed padrão (deve bater com o domínio do embed). */
 const YT_EMBED_ORIGIN = 'https://www.youtube.com';
@@ -69,6 +70,8 @@ const YoutubeTvPlayer: React.FC<YoutubeTvPlayerProps> = ({ videoId, title }) => 
     });
   }, []);
 
+  useEffect(() => onTvAudioUnlock(() => kickPlayback()), [kickPlayback]);
+
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== YT_EMBED_ORIGIN) return;
@@ -100,7 +103,7 @@ const YoutubeTvPlayer: React.FC<YoutubeTvPlayerProps> = ({ videoId, title }) => 
       title={title || 'Vídeo'}
       src={src}
       className="absolute inset-0 h-full w-full border-0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+      allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
       allowFullScreen
       onLoad={kickPlayback}
     />

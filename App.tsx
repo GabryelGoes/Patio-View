@@ -10,7 +10,7 @@ import PecasDisponiveisOverlay from './PecasDisponiveisOverlay.tsx';
 import GarantiaOverlay from './GarantiaOverlay.tsx';
 import TvSlidePage from './components/TvSlidePage.tsx';
 import { TvChimeBannerCard } from './components/TvChimeBannerCard.tsx';
-import { playEventSound } from './utils/tvSounds.ts';
+import { installTvAudioUnlock, playEventSound, playPreset, unlockTvAudio } from './utils/tvSounds.ts';
 import { defaultTvChimeSchedule, normalizeTvChimeConfig, type TvChimeKind } from './utils/tvChimeSchedule.ts';
 import { useTvChimeSchedule, type TvChimeFirePayload } from './hooks/useTvChimeSchedule.ts';
 import { useTvFullscreen } from './hooks/useTvFullscreen.ts';
@@ -85,6 +85,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     document.title = TV_CONFIG.documentTitle;
+  }, []);
+
+  useEffect(() => {
+    installTvAudioUnlock();
   }, []);
 
   const fullscreen = useTvFullscreen();
@@ -597,7 +601,15 @@ const App: React.FC = () => {
             </svg>
           </button>
           <button 
-            onClick={() => setTvSettings({ ...settings, soundMode: settings.soundMode === 'off' ? 'schedule' : 'off' })} 
+            onClick={() => {
+              void unlockTvAudio();
+              if (soundEnabled) {
+                setTvSettings({ ...settings, soundMode: 'off' });
+                return;
+              }
+              setTvSettings({ ...settings, soundMode: 'always' });
+              void playPreset('bell');
+            }}
             title={soundEnabled ? 'Silenciar som da TV' : 'Ativar som da TV'}
             className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
               soundEnabled 

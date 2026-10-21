@@ -19,6 +19,91 @@ function createCtx(): AudioContext | null {
   }
 }
 
+/**
+ * Um único AudioContext para a TV. Criar um contexto por bip estoura o limite
+ * do Chrome e, depois disso, a TV fica muda. O contexto também nasce suspenso
+ * até o primeiro toque na tela.
+ */
+let sharedCtx: AudioContext | null = null;
+let audioUnlocked = false;
+const unlockListeners = new Set<() => void>();
+
+function getSharedCtx(): AudioContext | null {
+  if (sharedCtx && sharedCtx.state === 'closed') sharedCtx = null;
+  if (!sharedCtx) sharedCtx = createCtx();
+  return sharedCtx;
+}
+
+export function isTvAudioUnlocked(): boolean {
+  return audioUnlocked && sharedCtx?.state === 'running';
+}
+
+/** Avisa vídeos e o YouTube quando o navegador libera o som. */
+export function onTvAudioUnlock(listener: () => void): () => void {
+  unlockListeners.add(listener);
+  if (isTvAudioUnlocked()) listener();
+  return () => unlockListeners.delete(listener);
+}
+
+/** Libera o som. Precisa ser chamado a partir de um toque ou clique. */
+export async function unlockTvAudio(): Promise<boolean> {
+  const ctx = getSharedCtx();
+  if (!ctx) return false;
+  try {
+    if (ctx.state === 'suspended') await ctx.resume();
+  } catch {
+    return false;
+  }
+  if (ctx.state !== 'running') return false;
+  if (!audioUnlocked) {
+    try {
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      src.start();
+    } catch {
+      /* o resume já basta na maioria dos navegadores */
+    }
+    audioUnlocked = true;
+    unlockListeners.forEach((listener) => listener());
+  }
+  return true;
+}
+
+let unlockInstalled = false;
+
+/** Qualquer toque na TV (tela cheia, configurações, alto-falante) libera o áudio. */
+export function installTvAudioUnlock(): void {
+  if (unlockInstalled || typeof window === 'undefined') return;
+  unlockInstalled = true;
+  const onGesture = () => {
+    void unlockTvAudio();
+  };
+  window.addEventListener('pointerdown', onGesture, true);
+  window.addEventListener('keydown', onGesture, true);
+  window.addEventListener('touchend', onGesture, true);
+}
+
+/** Contexto compartilhado já em execução, ou null se o navegador ainda bloqueia o som. */
+export async function acquireTvAudioContext(): Promise<AudioContext | null> {
+  const ctx = getSharedCtx();
+  if (!ctx) return null;
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch {
+      return null;
+    }
+  }
+  if (ctx.state !== 'running') return null;
+  if (!audioUnlocked) {
+    audioUnlocked = true;
+    unlockListeners.forEach((listener) => listener());
+  }
+  return ctx;
+}
+
 function note(
   ctx: AudioContext,
   type: OscillatorType,
@@ -189,10 +274,9 @@ export async function playPreset(id: string): Promise<void> {
   const v = getMasterVolume();
   if (v <= 0.0005) return;
   const preset = PRESET_MAP[id] ?? PRESET_MAP[DEFAULT_PRESET_ID];
-  const ctx = createCtx();
+  const ctx = await acquireTvAudioContext();
   if (!ctx) return;
   try {
-    if (ctx.state === 'suspended') await ctx.resume();
     preset.render(ctx, ctx.currentTime, v);
   } catch (e) {
     console.warn(e);

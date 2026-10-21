@@ -1,12 +1,5 @@
 import type { TvChimeSoundPreset } from './tvChimeSchedule';
-
-function getAudioContext(): AudioContext | null {
-  const w = typeof window !== 'undefined' ? window : undefined;
-  if (!w) return null;
-  const Ctor = w.AudioContext || (w as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctor) return null;
-  return new Ctor();
-}
+import { acquireTvAudioContext } from './tvSounds';
 
 function beep(
   ctx: AudioContext,
@@ -35,15 +28,8 @@ export async function playTvChimeSound(
   volume: number
 ): Promise<void> {
   const vol = Math.min(1, Math.max(0.05, volume));
-  const ctx = getAudioContext();
+  const ctx = await acquireTvAudioContext();
   if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    try {
-      await ctx.resume();
-    } catch {
-      /* ignore */
-    }
-  }
   const t0 = ctx.currentTime;
 
   if (preset === 'digital') {
@@ -59,36 +45,12 @@ export async function playTvChimeSound(
     beep(ctx, 659.25, t0 + 0.22, 0.32, vol * 0.9, 'sine');
     beep(ctx, 783.99, t0 + 0.48, 0.4, vol * 0.85, 'sine');
   }
-
-  const end = t0 + (preset === 'digital' ? 0.55 : 1.1);
-  setTimeout(() => {
-    try {
-      ctx.close();
-    } catch {
-      /* ignore */
-    }
-  }, Math.ceil((end - ctx.currentTime) * 1000) + 200);
 }
 
 /** Bip curto para antecipação (mais discreto). */
 export async function playTvChimePreSound(volume: number): Promise<void> {
   const vol = Math.min(1, Math.max(0.05, volume)) * 0.45;
-  const ctx = getAudioContext();
+  const ctx = await acquireTvAudioContext();
   if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    try {
-      await ctx.resume();
-    } catch {
-      /* ignore */
-    }
-  }
-  const t0 = ctx.currentTime;
-  beep(ctx, 660, t0, 0.12, vol, 'sine');
-  setTimeout(() => {
-    try {
-      ctx.close();
-    } catch {
-      /* ignore */
-    }
-  }, 400);
+  beep(ctx, 660, ctx.currentTime, 0.12, vol, 'sine');
 }
