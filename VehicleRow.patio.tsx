@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Vehicle, Stage } from './types.ts';
 import { CarOnLiftSvg } from './components/CarOnLiftSvg.tsx';
+import { isAssignedMechanicName } from './utils/mechanicName.ts';
 import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
+import { AwaitingEvalTimer } from './components/AwaitingEvalTimer.tsx';
 
 interface VehicleRowProps {
   vehicle: Vehicle;
@@ -177,7 +179,9 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   /** Na TV: exibir aro vermelho só quando o veículo tem a etiqueta garantia E não está na etapa Garantia (quando está na etapa Garantia não exibimos o aro). Se remover a etiqueta no modal do sistema, garantiaTag vem false e o aro some. */
   const showGarantiaRing = vehicle.garantiaTag === true && !isGarantia;
 
-  const shouldShake = isAlerting && isAwaitingEvaluationStage(vehicle.stage);
+  const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
+  const showEvalTimer = awaitingEval && !isAssignedMechanicName(vehicle.mechanic);
+  const shouldShake = isAlerting && awaitingEval;
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**
@@ -227,13 +231,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
     `}
       style={cardAccentStyle}
     >
-      <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
+      <div className="w-[22%] min-w-0 flex flex-col justify-center overflow-hidden font-black">
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
       </div>
 
-      <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">
+      <div className="w-[16%] min-w-0 border-l border-current/10 pl-6 overflow-hidden">
         <div className="flex flex-col uppercase font-black tracking-tight leading-[1.05]">
           {(vehicle.client || 'Cliente')
             .split(/\s+/)
@@ -245,7 +249,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
+      <div className={`w-[34%] min-w-0 border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'justify-center' : ''}`}>
           {isEmServico ? (
             <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
@@ -254,7 +258,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
             </div>
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
-          
+
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
@@ -304,12 +308,21 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className="w-[14%] border-l border-current/10 px-3 flex items-center justify-center h-full">
+      <div className="w-[14%] min-w-0 border-l border-current/10 px-3 flex items-center justify-center h-full">
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex items-center">
-        <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+      <div className="w-[14%] min-w-0 border-l border-current/10 pl-4 pr-2 h-full flex items-center overflow-hidden">
+        {showEvalTimer ? (
+          <AwaitingEvalTimer since={vehicle.activityAt} />
+        ) : (
+          <p
+            className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2]"
+            style={awaitingEval ? { color: '#ff1a1a', opacity: 1 } : { opacity: 0.9 }}
+          >
+            {vehicle.mechanic}
+          </p>
+        )}
       </div>
 
       <style>{`

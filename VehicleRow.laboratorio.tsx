@@ -138,7 +138,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   /** Produto encaminhado da oficina: aro âmbar (não sobrepõe o aro de garantia). */
   const showWorkshopRing = vehicle.fromWorkshop === true && !showGarantiaRing;
 
-  const shouldShake = isAlerting && isAwaitingEvaluationStage(vehicle.stage);
+  const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
+  const shouldShake = isAlerting && awaitingEval;
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
   /**
@@ -218,7 +219,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
             </div>
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
-          
+
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
@@ -229,7 +230,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
               </div>
             </div>
           )}
-          
+
           <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado ? 'w-full justify-center' : 'w-full'}`}>
             {isFaseDeTeste ? (
                <div className="flex items-center justify-center w-full gap-2 -translate-x-[15%]">

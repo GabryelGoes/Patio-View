@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { isTvAudioUnlocked, onTvAudioUnlock } from '../utils/tvSounds.ts';
 
 type UploadedVideoTvPlayerProps = {
   src: string;
@@ -21,8 +22,9 @@ function objectFitClass(fit: UploadedVideoTvPlayerProps['objectFit']): string {
 }
 
 /**
- * Vídeo na TV: autoplay mutado (sempre permitido pelo Chrome) e à prova de congelamento.
- * O som só é liberado após um toque/clique na tela (gesto do usuário), sem nunca pausar o vídeo.
+ * Vídeo na TV: começa mudo para o Chrome permitir o autoplay.
+ * Depois do primeiro toque, o som permanece ligado também na troca de slide.
+ * Se o navegador recusar o áudio, o vídeo continua mudo em vez de congelar.
  */
 const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
   src,
@@ -32,28 +34,34 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
   onEnded,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [audible, setAudible] = useState(isTvAudioUnlocked);
+
+  useEffect(() => onTvAudioUnlock(() => setAudible(true)), []);
 
   /** Garante que o vídeo está tocando; se preciso, volta a mutar (mudo sempre toca). */
   const ensurePlaying = useCallback(async () => {
     const el = videoRef.current;
     if (!el) return;
     if (!el.paused && !el.ended) return;
+    el.muted = !audible;
     try {
       await el.play();
     } catch {
-      el.muted = true;
-      try {
-        await el.play();
-      } catch {
-        /* o watchdog tenta de novo */
+      if (!el.muted) {
+        el.muted = true;
+        try {
+          await el.play();
+        } catch {
+          /* o watchdog tenta de novo */
+        }
       }
     }
-  }, []);
+  }, [audible]);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    el.muted = true;
+    el.muted = !audible;
 
     const onReady = () => void ensurePlaying();
     const onPause = () => void ensurePlaying();
@@ -73,22 +81,7 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
       timers.forEach(clearTimeout);
       window.clearInterval(watchdog);
     };
-  }, [src, ensurePlaying]);
-
-  /** Som ao primeiro toque/clique na TV, sem risco de travar a reprodução. */
-  useEffect(() => {
-    const enableSound = () => {
-      const el = videoRef.current;
-      if (!el) return;
-      el.muted = false;
-      el.play().catch(() => {
-        el.muted = true;
-        el.play().catch(() => {});
-      });
-    };
-    window.addEventListener('pointerdown', enableSound);
-    return () => window.removeEventListener('pointerdown', enableSound);
-  }, []);
+  }, [src, audible, ensurePlaying]);
 
   return (
     <video
@@ -98,7 +91,7 @@ const UploadedVideoTvPlayer: React.FC<UploadedVideoTvPlayerProps> = ({
       className={`${objectFitClass(objectFit)} ${className}`}
       playsInline
       autoPlay
-      muted
+      muted={!audible}
       loop={loop}
       preload="auto"
       controls={false}
