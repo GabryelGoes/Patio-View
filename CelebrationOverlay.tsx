@@ -30,7 +30,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   const logoUrl = logoFailed ? null : getVehicleBrandLogoUrl(parts.brand);
   const modelText = (parts.model || 'Veículo').toLocaleUpperCase('pt-BR');
   const plateText = plateLabel(vehicle.plate);
-  const modelSize = modelText.length > 18 ? '3.2vh' : modelText.length > 12 ? '4.4vh' : '5.5vh';
+  const modelSize = modelText.length > 18 ? '3.6vh' : modelText.length > 12 ? '5vh' : '6.2vh';
   const plateSize = plateText.length > 8 ? '2.7vh' : '3.6vh';
 
   useEffect(() => {
@@ -66,14 +66,14 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
             </filter>
           </defs>
           <g fill="none" stroke="url(#celeArc)" strokeLinecap="round" filter="url(#celeArcGlow)">
-            <path d="M 310 -70 C 150 30, 40 150, -70 340" strokeWidth="92" />
-            <path d="M 310 -70 C 150 30, 40 150, -70 340" strokeWidth="28" stroke="#ffb15a" />
-            <path d="M 1290 -70 C 1450 30, 1560 150, 1670 340" strokeWidth="92" />
-            <path d="M 1290 -70 C 1450 30, 1560 150, 1670 340" strokeWidth="28" stroke="#ffb15a" />
-            <path d="M -70 560 C 40 750, 150 860, 310 980" strokeWidth="92" />
-            <path d="M -70 560 C 40 750, 150 860, 310 980" strokeWidth="28" stroke="#ffb15a" />
-            <path d="M 1670 560 C 1560 750, 1450 860, 1290 980" strokeWidth="92" />
-            <path d="M 1670 560 C 1560 750, 1450 860, 1290 980" strokeWidth="28" stroke="#ffb15a" />
+            <path d="M 360 -90 C 170 20, 20 170, -90 390" strokeWidth="120" />
+            <path d="M 360 -90 C 170 20, 20 170, -90 390" strokeWidth="34" stroke="#ffc56a" />
+            <path d="M 1240 -90 C 1430 20, 1580 170, 1690 390" strokeWidth="120" />
+            <path d="M 1240 -90 C 1430 20, 1580 170, 1690 390" strokeWidth="34" stroke="#ffc56a" />
+            <path d="M -90 520 C 20 740, 170 870, 360 1000" strokeWidth="120" />
+            <path d="M -90 520 C 20 740, 170 870, 360 1000" strokeWidth="34" stroke="#ffc56a" />
+            <path d="M 1690 520 C 1580 740, 1430 870, 1240 1000" strokeWidth="120" />
+            <path d="M 1690 520 C 1580 740, 1430 870, 1240 1000" strokeWidth="34" stroke="#ffc56a" />
           </g>
         </svg>
 
@@ -174,13 +174,13 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: min(92vw, 1600px);
-          transform: translateY(-1.2vh);
+          width: min(94vw, 1760px);
+          transform: translateY(-2.4vh);
         }
         .cele-icon {
-          width: 16.8vh;
-          height: 16.8vh;
-          margin-bottom: 2.2vh;
+          width: 18vh;
+          height: 18vh;
+          margin-bottom: 1.6vh;
           filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
         }
         .cele-orcamento,
@@ -194,27 +194,27 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
         }
         .cele-orcamento {
           color: #ffffff;
-          font-size: 9.5vh;
-          letter-spacing: -0.015em;
+          font-size: 11.6vh;
+          letter-spacing: -0.02em;
           text-shadow:
             0 2px 0 rgba(0, 0, 0, 0.28),
             0 12px 22px rgba(0, 0, 0, 0.45);
         }
         .cele-aprovado {
-          margin-top: 0.6vh;
-          font-size: 14.8vh;
-          letter-spacing: -0.035em;
-          background: linear-gradient(180deg, #ffc85a 0%, #fd982e 26%, #f56a12 64%, #fe5604 100%);
+          margin-top: 0.2vh;
+          font-size: 18.4vh;
+          letter-spacing: -0.04em;
+          background: linear-gradient(180deg, #ffb03a 0%, #fd8c1e 34%, #ff5c04 100%);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           filter:
-            drop-shadow(0 0 10px rgba(255, 150, 40, 0.55))
-            drop-shadow(0 0 26px rgba(255, 90, 0, 0.42))
+            drop-shadow(0 0 12px rgba(255, 140, 30, 0.55))
+            drop-shadow(0 0 28px rgba(255, 80, 0, 0.4))
             drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
         }
         .cele-bar {
-          margin-top: 4.6vh;
+          margin-top: 3.6vh;
           width: min(84vw, 1420px);
           height: 16.2vh;
           min-height: 132px;
@@ -232,8 +232,8 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           backdrop-filter: blur(16px);
         }
         .cele-logo {
-          width: 20vh;
-          height: 9vh;
+          width: 26vh;
+          height: 11vh;
           flex: 0 0 auto;
           display: flex;
           align-items: center;
