@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WorkshopData, Stage, Vehicle } from './types.ts';
 import { fetchWorkshopData } from './services/tvApiService.ts';
-import { TV_CONFIG, clearTvMode } from './config/tvMode.ts';
+import { TV_CONFIG, clearTvMode, isPatio } from './config/tvMode.ts';
 import Clock from './Clock.tsx';
 import VehicleRow from './VehicleRow.tsx';
 import CelebrationOverlay from './CelebrationOverlay.tsx';
@@ -640,11 +640,11 @@ const App: React.FC = () => {
           <div className="w-full text-center">Conteúdo da TV</div>
         ) : (
           <>
-            <div className="w-[22%]">{TV_CONFIG.columns.first}</div>
-            <div className="w-[16%] pl-6">Cliente</div>
-            <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
+            <div className={isPatio ? 'w-[20%]' : 'w-[22%]'}>{TV_CONFIG.columns.first}</div>
+            <div className={isPatio ? 'w-[14%] pl-6' : 'w-[16%] pl-6'}>Cliente</div>
+            <div className={isPatio ? 'w-[30%] pl-6 text-center' : 'w-[34%] pl-6 text-center'}>Etapa Atual</div>
             <div className="w-[14%] pl-6 text-center">{TV_CONFIG.columns.fourth}</div>
-            <div className="w-[14%] pl-6">{TV_CONFIG.columns.fifth}</div>
+            <div className={isPatio ? 'w-[22%] pl-4' : 'w-[14%] pl-6'}>{TV_CONFIG.columns.fifth}</div>
           </>
         )}
       </div>

@@ -178,6 +178,17 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   const showGarantiaRing = vehicle.garantiaTag === true && !isGarantia;
 
   const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
+  const mechanicName = (vehicle.mechanic || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  const mechanicMissing =
+    vehicle.mechanicAssigned !== true ||
+    mechanicName === '' ||
+    mechanicName === 'patio' ||
+    mechanicName === 'laboratorio';
+  const showEvalTimer = awaitingEval && mechanicMissing;
   const shouldShake = isAlerting && awaitingEval;
   const displayStage = isNaoAprovado ? 'Não Aprovado' : vehicle.stage;
 
@@ -228,13 +239,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
     `}
       style={cardAccentStyle}
     >
-      <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
+      <div className="w-[20%] min-w-0 flex flex-col justify-center overflow-hidden font-black">
         <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
       </div>
 
-      <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">
+      <div className="w-[14%] min-w-0 border-l border-current/10 pl-6 overflow-hidden">
         <div className="flex flex-col uppercase font-black tracking-tight leading-[1.05]">
           {(vehicle.client || 'Cliente')
             .split(/\s+/)
@@ -246,7 +257,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
+      <div className={`w-[30%] min-w-0 border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
         <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'justify-center' : ''}`}>
           {isEmServico ? (
             <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
@@ -294,12 +305,12 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className="w-[14%] border-l border-current/10 px-3 flex items-center justify-center h-full">
+      <div className="w-[14%] min-w-0 border-l border-current/10 px-3 flex items-center justify-center h-full">
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-4 pr-2 h-full flex items-center min-w-0">
-        {awaitingEval && !vehicle.mechanicAssigned ? (
+      <div className="w-[22%] shrink-0 border-l border-current/10 pl-4 pr-3 h-full flex items-center overflow-visible">
+        {showEvalTimer ? (
           <AwaitingEvalTimer since={vehicle.activityAt} />
         ) : (
           <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
