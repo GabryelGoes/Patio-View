@@ -82,6 +82,7 @@ export const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
           ))}
         </div>
         <span className="mp-br">BR</span>
+        <div className="mp-rim" aria-hidden="true" />
       </div>
       <style>{`
         .mp-sizer {
@@ -97,9 +98,16 @@ export const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
           border-radius: calc(100cqi * 8 / 400);
           overflow: hidden;
           background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 55%, #ececec 100%);
-          box-shadow:
-            0 10px 22px rgba(0, 0, 0, 0.38),
-            inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
+        }
+        .mp-rim {
+          position: absolute;
+          inset: 0;
+          z-index: 6;
+          box-sizing: border-box;
+          border-radius: inherit;
+          border: calc(100cqi * 6 / 400) solid #0a0a0a;
+          pointer-events: none;
         }
         .mp-band {
           position: absolute;
