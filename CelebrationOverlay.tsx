@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
+import { MercosulPlate } from './components/MercosulPlate.tsx';
 import { playEventSound } from './utils/tvSounds.ts';
 import { celebrationVehicleParts, getVehicleBrandLogoUrl } from './utils/vehicleBrandLogo.ts';
 
@@ -8,11 +9,6 @@ interface CelebrationOverlayProps {
   onComplete: () => void;
   soundEnabled: boolean;
   durationMs?: number;
-}
-
-function plateLabel(plate: string): string {
-  const clean = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  return clean || '-------';
 }
 
 const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
@@ -29,9 +25,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   const parts = celebrationVehicleParts(vehicle.brand, vehicle.model);
   const logoUrl = logoFailed ? null : getVehicleBrandLogoUrl(parts.brand);
   const modelText = (parts.model || 'Veículo').toLocaleUpperCase('pt-BR');
-  const plateText = plateLabel(vehicle.plate);
-  const modelSize = modelText.length > 18 ? '3.6vh' : modelText.length > 12 ? '5vh' : '6.2vh';
-  const plateSize = plateText.length > 8 ? '2.7vh' : '3.6vh';
+  const modelSize = modelText.length > 18 ? '3.4vh' : modelText.length > 12 ? '4.6vh' : '5.6vh';
 
   useEffect(() => {
     if (soundEnabled) void playEventSound('budgetApproved');
@@ -49,91 +43,22 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   return (
     <div className={`cele-shell${isExiting ? ' is-exiting' : ''}`}>
       <div className="cele-scene">
-        <svg className="cele-arcs" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <defs>
-            <linearGradient id="celeArc" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#ffd27a" />
-              <stop offset="38%" stopColor="#ff8a1c" />
-              <stop offset="100%" stopColor="#ff4a00" />
-            </linearGradient>
-            <filter id="celeArcGlow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="16" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g fill="none" stroke="url(#celeArc)" strokeLinecap="round" filter="url(#celeArcGlow)">
-            <path d="M 360 -90 C 170 20, 20 170, -90 390" strokeWidth="120" />
-            <path d="M 360 -90 C 170 20, 20 170, -90 390" strokeWidth="34" stroke="#ffc56a" />
-            <path d="M 1240 -90 C 1430 20, 1580 170, 1690 390" strokeWidth="120" />
-            <path d="M 1240 -90 C 1430 20, 1580 170, 1690 390" strokeWidth="34" stroke="#ffc56a" />
-            <path d="M -90 520 C 20 740, 170 870, 360 1000" strokeWidth="120" />
-            <path d="M -90 520 C 20 740, 170 870, 360 1000" strokeWidth="34" stroke="#ffc56a" />
-            <path d="M 1690 520 C 1580 740, 1430 870, 1240 1000" strokeWidth="120" />
-            <path d="M 1690 520 C 1580 740, 1430 870, 1240 1000" strokeWidth="34" stroke="#ffc56a" />
-          </g>
-        </svg>
-
-        <div className="cele-stack">
-          <svg className="cele-icon" viewBox="0 0 160 160" aria-hidden="true">
-            <defs>
-              <linearGradient id="celeIconBg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff9a2e" />
-                <stop offset="52%" stopColor="#ff6a00" />
-                <stop offset="100%" stopColor="#f24d00" />
-              </linearGradient>
-              <filter id="celeIconShadow" x="-40%" y="-40%" width="180%" height="180%">
-                <feDropShadow dx="0" dy="12" stdDeviation="8" floodColor="#ff6a00" floodOpacity="0.55" />
-              </filter>
-            </defs>
-            <rect x="10" y="8" width="140" height="140" rx="34" fill="url(#celeIconBg)" filter="url(#celeIconShadow)" />
-            <rect x="50" y="36" width="54" height="72" rx="6" fill="#ffffff" />
-            <rect x="60" y="50" width="34" height="5" rx="2.5" fill="#ff7a12" />
-            <rect x="60" y="62" width="26" height="5" rx="2.5" fill="#ff7a12" />
-            <rect x="60" y="74" width="20" height="5" rx="2.5" fill="#ff7a12" />
-            <circle cx="100" cy="102" r="20" fill="#ffffff" />
-            <path
-              d="M90.5 102.5 l6.6 6.8 l13.2-14.2"
-              fill="none"
-              stroke="#f24d00"
-              strokeWidth="4.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-
-          <h1 className="cele-orcamento">ORÇAMENTO</h1>
-          <h1 className="cele-aprovado">APROVADO</h1>
-
-          <div className="cele-bar">
-            {logoUrl && (
-              <>
-                <div className="cele-logo">
-                  <img
-                    src={logoUrl}
-                    alt=""
-                    draggable={false}
-                    onError={() => setLogoFailed(true)}
-                  />
-                </div>
-                <span className="cele-sep" />
-              </>
-            )}
-            <p className="cele-model" style={{ fontSize: modelSize }}>{modelText}</p>
-            <div className="cele-plate" aria-label={`Placa ${plateText}`}>
-              <div className="cele-plate-top">
-                <span>BRASIL</span>
-                <span className="cele-flag" aria-hidden="true">
-                  <span className="cele-flag-diamond" />
-                  <span className="cele-flag-circle" />
-                </span>
+        <div className="cele-bar">
+          {logoUrl && (
+            <>
+              <div className="cele-logo">
+                <img
+                  src={logoUrl}
+                  alt=""
+                  draggable={false}
+                  onError={() => setLogoFailed(true)}
+                />
               </div>
-              <div className="cele-plate-body" style={{ fontSize: plateSize }}>{plateText}</div>
-            </div>
-          </div>
+              <span className="cele-sep" />
+            </>
+          )}
+          <p className="cele-model" style={{ fontSize: modelSize }}>{modelText}</p>
+          <MercosulPlate plate={vehicle.plate} />
         </div>
       </div>
       <style>{`
@@ -149,82 +74,24 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
         .cele-scene {
           position: absolute;
           inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          background:
-            radial-gradient(ellipse 48% 40% at -4% -6%, rgba(255, 130, 20, 0.55), transparent 62%),
-            radial-gradient(ellipse 48% 40% at 104% -6%, rgba(255, 110, 10, 0.5), transparent 62%),
-            radial-gradient(ellipse 46% 38% at -6% 108%, rgba(255, 110, 10, 0.48), transparent 64%),
-            radial-gradient(ellipse 46% 38% at 106% 108%, rgba(255, 100, 0, 0.42), transparent 64%),
-            #050302;
-          animation: cele-in 0.55s ease-out both;
-        }
-        .cele-arcs {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-        }
-        .cele-stack {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: min(94vw, 1760px);
-          transform: translateY(-2.4vh);
-        }
-        .cele-icon {
-          width: 18vh;
-          height: 18vh;
-          margin-bottom: 1.6vh;
-          filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
-        }
-        .cele-orcamento,
-        .cele-aprovado {
-          margin: 0;
-          font-family: Montserrat, Inter, sans-serif;
-          font-weight: 900;
-          text-transform: uppercase;
-          line-height: 0.86;
-          text-align: center;
-        }
-        .cele-orcamento {
-          color: #ffffff;
-          font-size: 11.6vh;
-          letter-spacing: -0.02em;
-          text-shadow:
-            0 2px 0 rgba(0, 0, 0, 0.28),
-            0 12px 22px rgba(0, 0, 0, 0.45);
-        }
-        .cele-aprovado {
-          margin-top: 0.2vh;
-          font-size: 18.4vh;
-          letter-spacing: -0.04em;
-          background: linear-gradient(180deg, #ffb03a 0%, #fd8c1e 34%, #ff5c04 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          filter:
-            drop-shadow(0 0 12px rgba(255, 140, 30, 0.55))
-            drop-shadow(0 0 28px rgba(255, 80, 0, 0.4))
-            drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
+          background: #050302 url('/orcamento-aprovado-bg.png') center / cover no-repeat;
+          animation: cele-in 0.45s ease-out both;
         }
         .cele-bar {
-          margin-top: 3.6vh;
-          width: min(84vw, 1420px);
-          height: 16.2vh;
-          min-height: 132px;
+          position: absolute;
+          left: 50%;
+          top: 67%;
+          transform: translateX(-50%);
+          width: min(84vw, 1460px);
+          height: 16.4vh;
+          min-height: 128px;
           box-sizing: border-box;
           display: flex;
           align-items: center;
           gap: 1.5vw;
           padding: 0 1.5vw 0 1.8vw;
           border-radius: 26px;
-          background: linear-gradient(180deg, rgba(62, 62, 62, 0.38) 0%, rgba(8, 8, 8, 0.72) 100%);
+          background: linear-gradient(180deg, rgba(62, 62, 62, 0.42) 0%, rgba(8, 8, 8, 0.78) 100%);
           border: 1.5px solid rgba(255, 255, 255, 0.28);
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.22),
@@ -232,8 +99,8 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           backdrop-filter: blur(16px);
         }
         .cele-logo {
-          width: 26vh;
-          height: 11vh;
+          width: 22vh;
+          height: 9vh;
           flex: 0 0 auto;
           display: flex;
           align-items: center;
@@ -267,72 +134,6 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           overflow: hidden;
           text-overflow: ellipsis;
           text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-        }
-        .cele-plate {
-          flex: 0 0 auto;
-          width: 20vh;
-          height: 11vh;
-          display: flex;
-          flex-direction: column;
-          background: #ffffff;
-          border-radius: 8px;
-          overflow: hidden;
-          border: 2px solid #1a1a1a;
-          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
-        }
-        .cele-plate-top {
-          height: 30%;
-          min-height: 18px;
-          background: #003399;
-          color: #ffffff;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 0.7vh 0 0.85vh;
-          font-family: Montserrat, Inter, sans-serif;
-          font-weight: 800;
-          font-size: 1.15vh;
-          letter-spacing: 0.34em;
-          line-height: 1;
-        }
-        .cele-flag {
-          position: relative;
-          width: 2.1vh;
-          height: 1.45vh;
-          background: #009b3a;
-          border-radius: 1px;
-          flex: 0 0 auto;
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
-        }
-        .cele-flag-diamond {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 68%;
-          height: 68%;
-          background: #ffdf00;
-          transform: translate(-50%, -50%) rotate(45deg);
-        }
-        .cele-flag-circle {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 34%;
-          height: 34%;
-          border-radius: 50%;
-          background: #002776;
-          transform: translate(-50%, -50%);
-        }
-        .cele-plate-body {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #111111;
-          font-family: Montserrat, Inter, sans-serif;
-          font-weight: 900;
-          letter-spacing: 0.03em;
-          line-height: 1;
         }
         @keyframes cele-in {
           from { opacity: 0; }
