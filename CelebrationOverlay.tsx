@@ -1,14 +1,79 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
-import { MercosulPlate } from './components/MercosulPlate.tsx';
 import { playEventSound } from './utils/tvSounds.ts';
-import { celebrationVehicleParts, getVehicleBrandLogoUrl } from './utils/vehicleBrandLogo.ts';
+import { celebrationVehicleParts } from './utils/vehicleBrandLogo.ts';
+import { isAssignedMechanicName } from './utils/mechanicName.ts';
 
 interface CelebrationOverlayProps {
   vehicle: Vehicle;
   onComplete: () => void;
   soundEnabled: boolean;
   durationMs?: number;
+}
+
+const ART_W = 1679;
+const ART_H = 937;
+
+/** Caixa em porcentagem da arte (1679×937). */
+function artBox(x: number, y: number, w: number, h: number): React.CSSProperties {
+  return {
+    left: `${(x / ART_W) * 100}%`,
+    top: `${(y / ART_H) * 100}%`,
+    width: `${(w / ART_W) * 100}%`,
+    height: `${(h / ART_H) * 100}%`,
+  };
+}
+
+function vehicleTitle(brand: string | null | undefined, model: string): string {
+  const parts = celebrationVehicleParts(brand, model);
+  const modelName = (parts.model || '').trim();
+  const brandName = (parts.brand || '').trim();
+  if (
+    brandName &&
+    modelName &&
+    !modelName.toLocaleLowerCase('pt-BR').startsWith(brandName.toLocaleLowerCase('pt-BR'))
+  ) {
+    return `${brandName} ${modelName}`;
+  }
+  return modelName || brandName || 'Veículo';
+}
+
+function plateChars(plate: string): string {
+  const clean = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return clean || '-------';
+}
+
+/** Encaixa o texto na caixa, sem esticar as letras. */
+function useFitWidth(text: string, fill = 0.96, shiftEm = 0) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const el = textRef.current;
+    if (!box || !el) return;
+    let cancelled = false;
+    const fit = () => {
+      if (cancelled || box.clientHeight === 0) return;
+      const boxH = box.clientHeight;
+      el.style.transform = 'none';
+      el.style.fontSize = `${boxH}px`;
+      const byWidth = el.scrollWidth > 0 ? ((box.clientWidth * fill) / el.scrollWidth) * boxH : boxH;
+      const byHeight = el.offsetHeight > 0 ? ((boxH * fill) / el.offsetHeight) * boxH : boxH;
+      el.style.fontSize = `${Math.min(byWidth, byHeight)}px`;
+      el.style.transform = shiftEm ? `translateY(${shiftEm}em)` : 'none';
+    };
+    fit();
+    void document.fonts.ready.then(fit);
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [text, fill, shiftEm]);
+
+  return { boxRef, textRef };
 }
 
 const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
@@ -19,14 +84,15 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const [entered, setEntered] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  const parts = celebrationVehicleParts(vehicle.brand, vehicle.model);
-  const logoUrl = logoFailed ? null : getVehicleBrandLogoUrl(parts.brand);
-  const modelText = (parts.model || 'Veículo').toLocaleUpperCase('pt-BR');
-  const modelSize = modelText.length > 18 ? '3.4vh' : modelText.length > 12 ? '4.6vh' : '5.6vh';
+  const title = vehicleTitle(vehicle.brand, vehicle.model);
+  const plate = plateChars(vehicle.plate);
+  const mechanic = isAssignedMechanicName(vehicle.mechanic) ? vehicle.mechanic.trim() : '';
+  const nameFit = useFitWidth(title, 0.94);
+  const plateFit = useFitWidth(plate, 0.94, -0.04);
+  const mechanicFit = useFitWidth(mechanic, 0.92);
 
   useEffect(() => {
     const img = new Image();
@@ -41,7 +107,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
     };
     img.onload = start;
     img.onerror = start;
-    img.src = '/orcamento-aprovado-bg.png';
+    img.src = '/orcamento-aprovado-laranja.png';
     if (img.complete) start();
     return () => {
       cancelled = true;
@@ -64,22 +130,24 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   return (
     <div className={`cele-shell${entered ? ' is-entered' : ''}${isExiting ? ' is-exiting' : ''}`}>
       <div className="cele-scene">
-        <div className="cele-bar">
-          {logoUrl && (
-            <>
-              <div className="cele-logo">
-                <img
-                  src={logoUrl}
-                  alt=""
-                  draggable={false}
-                  onError={() => setLogoFailed(true)}
-                />
-              </div>
-              <span className="cele-sep" />
-            </>
+        <div className="cele-art">
+          <img src="/orcamento-aprovado-laranja.png" alt="" draggable={false} />
+          <div ref={nameFit.boxRef} className="cele-slot cele-name" style={artBox(456, 534, 744, 62)}>
+            <span ref={nameFit.textRef}>{title}</span>
+          </div>
+          <div
+            ref={plateFit.boxRef}
+            className="cele-slot cele-plate"
+            style={artBox(598, 669, 484, 96)}
+            aria-label={`Placa ${plate}`}
+          >
+            <span ref={plateFit.textRef}>{plate}</span>
+          </div>
+          {mechanic && (
+            <div ref={mechanicFit.boxRef} className="cele-slot cele-mech" style={artBox(708, 830, 380, 36)}>
+              <span ref={mechanicFit.textRef}>{mechanic}</span>
+            </div>
           )}
-          <p className="cele-model" style={{ fontSize: modelSize }}>{modelText}</p>
-          <MercosulPlate plate={vehicle.plate} />
         </div>
       </div>
       <style>{`
@@ -95,71 +163,67 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
         .cele-scene {
           position: absolute;
           inset: 0;
-          background: #050302 url('/orcamento-aprovado-bg.png') center / cover no-repeat;
+          container-type: size;
+          background: #fb6901;
           transform: translateY(-100%);
         }
         .cele-shell.is-entered .cele-scene {
           animation: cele-down 1.5s cubic-bezier(0.2, 0.55, 0.2, 1) forwards;
         }
-        .cele-bar {
+        .cele-art {
           position: absolute;
           left: 50%;
-          top: 67%;
-          transform: translateX(-50%);
-          width: max-content;
-          max-width: min(92vw, 1180px);
-          height: auto;
-          box-sizing: border-box;
-          display: flex;
-          align-items: center;
-          gap: 1.7vh;
-          padding: 1.35vh 1.8vh 1.35vh 2vh;
-          border-radius: 22px;
-          background: linear-gradient(180deg, rgba(62, 62, 62, 0.42) 0%, rgba(8, 8, 8, 0.78) 100%);
-          border: 1.5px solid rgba(255, 255, 255, 0.28);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.22),
-            0 16px 36px rgba(0, 0, 0, 0.45);
-          backdrop-filter: blur(16px);
+          top: 50%;
+          width: max(100cqw, calc(100cqh * ${ART_W} / ${ART_H}));
+          height: max(100cqh, calc(100cqw * ${ART_H} / ${ART_W}));
+          transform: translate(-50%, -50%);
         }
-        .cele-logo {
-          height: 7.2vh;
-          width: auto;
-          max-width: 20vh;
-          flex: 0 0 auto;
+        .cele-art img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: fill;
+          user-select: none;
+        }
+        .cele-slot {
+          position: absolute;
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: hidden;
+          container-type: size;
         }
-        .cele-logo img {
-          height: 7.2vh;
-          width: auto;
-          max-width: 20vh;
-          object-fit: contain;
-          object-position: center;
+        .cele-slot span {
+          display: block;
+          white-space: nowrap;
+          transform-origin: center center;
         }
-        .cele-sep {
-          width: 1.5px;
-          height: 7.4vh;
-          flex: 0 0 auto;
-          background: rgba(255, 255, 255, 0.72);
-          box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
-        }
-        .cele-model {
-          flex: 0 1 auto;
-          min-width: 0;
-          max-width: 42vw;
-          margin: 0;
-          color: #ffffff;
+        .cele-name span {
+          color: #2a2a2a;
           font-family: Montserrat, Inter, sans-serif;
           font-weight: 800;
-          letter-spacing: 0.045em;
+          font-size: 92cqh;
           line-height: 1;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        }
+        .cele-plate span {
+          color: #1a1a1a;
+          font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+          font-weight: 700;
+          font-size: 132cqh;
+          line-height: 0.7;
+          letter-spacing: 0.11em;
+          padding-left: 0.11em;
+        }
+        .cele-mech span {
+          color: #2a2a2a;
+          font-family: Inter, sans-serif;
+          font-weight: 700;
+          font-size: 78cqh;
+          line-height: 1;
+          letter-spacing: 0.01em;
         }
         @keyframes cele-down {
           from { transform: translateY(-100%); }
