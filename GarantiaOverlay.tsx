@@ -1,7 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
 import { playEventSound } from './utils/tvSounds.ts';
+import { celebrationVehicleParts } from './utils/vehicleBrandLogo.ts';
+import { isAssignedMechanicName } from './utils/mechanicName.ts';
 
 interface GarantiaOverlayProps {
   vehicle: Vehicle;
@@ -11,17 +12,116 @@ interface GarantiaOverlayProps {
   durationMs?: number;
 }
 
-const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, soundEnabled, durationMs = 7000 }) => {
+const ART_W = 1678;
+const ART_H = 937;
+const ART_SRC = '/garantia.png';
+
+/** Caixa em porcentagem da arte (1678×937). */
+function artBox(x: number, y: number, w: number, h: number): React.CSSProperties {
+  return {
+    left: `${(x / ART_W) * 100}%`,
+    top: `${(y / ART_H) * 100}%`,
+    width: `${(w / ART_W) * 100}%`,
+    height: `${(h / ART_H) * 100}%`,
+  };
+}
+
+function vehicleTitle(brand: string | null | undefined, model: string): string {
+  const parts = celebrationVehicleParts(brand, model);
+  const modelName = (parts.model || '').trim();
+  const brandName = (parts.brand || '').trim();
+  if (
+    brandName &&
+    modelName &&
+    !modelName.toLocaleLowerCase('pt-BR').startsWith(brandName.toLocaleLowerCase('pt-BR'))
+  ) {
+    return `${brandName} ${modelName}`;
+  }
+  return modelName || brandName || 'Veículo';
+}
+
+function plateChars(plate: string): string {
+  const clean = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return clean || '-------';
+}
+
+/** Encaixa o texto na caixa, sem esticar as letras. `boost` aumenta a fonte já encaixada. */
+function useFitWidth(text: string, fill = 0.96, shiftEm = 0, boost = 1) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const el = textRef.current;
+    if (!box || !el) return;
+    let cancelled = false;
+    const fit = () => {
+      if (cancelled || box.clientHeight === 0) return;
+      const boxH = box.clientHeight;
+      el.style.transform = 'none';
+      el.style.fontSize = `${boxH}px`;
+      const byWidth = el.scrollWidth > 0 ? ((box.clientWidth * fill) / el.scrollWidth) * boxH : boxH;
+      const byHeight = el.offsetHeight > 0 ? ((boxH * fill) / el.offsetHeight) * boxH : boxH;
+      el.style.fontSize = `${Math.min(byWidth, byHeight * boost)}px`;
+      el.style.transform = shiftEm ? `translateY(${shiftEm}em)` : 'none';
+    };
+    fit();
+    void document.fonts.ready.then(fit);
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [text, fill, shiftEm, boost]);
+
+  return { boxRef, textRef };
+}
+
+const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({
+  vehicle,
+  onComplete,
+  soundEnabled,
+  durationMs = 7000,
+}) => {
   const [isExiting, setIsExiting] = useState(false);
+  const [entered, setEntered] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+
+  const title = vehicleTitle(vehicle.brand, vehicle.model);
+  const plate = plateChars(vehicle.plate);
+  const mechanic = isAssignedMechanicName(vehicle.mechanic) ? vehicle.mechanic.trim() : '';
+  const nameFit = useFitWidth(title, 0.94, 0, 1.2);
+  const plateFit = useFitWidth(plate, 0.94, -0.04);
+  const mechanicFit = useFitWidth(mechanic, 0.92);
+
+  useEffect(() => {
+    const img = new Image();
+    let cancelled = false;
+    const start = () => {
+      if (cancelled) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!cancelled) setEntered(true);
+        });
+      });
+    };
+    img.onload = start;
+    img.onerror = start;
+    img.src = ART_SRC;
+    if (img.complete) start();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (soundEnabled) void playEventSound('garantia');
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
-      completeTimer = setTimeout(() => onCompleteRef.current(), 1000);
+      completeTimer = setTimeout(() => onCompleteRef.current(), 1150);
     }, durationMs);
     return () => {
       clearTimeout(timer);
@@ -30,71 +130,108 @@ const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, 
   }, [soundEnabled, durationMs]);
 
   return (
-    <div className={`fixed inset-0 z-[250] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>
-      <div className="absolute inset-0 bg-[#991b1b] flex flex-col items-center justify-center animate-drop-bounce overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.8)_0%,rgba(127,29,29,1)_100%)]" />
-        
-        <div className="relative z-10 text-center flex flex-col items-center gap-6">
-          <h1 className="text-white font-black italic text-[14vw] uppercase leading-[0.8] text-depth-3d animate-title-entry">
-            GARANTIA
-          </h1>
-          
-          <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[40px] border border-white/20 w-full max-w-4xl shadow-2xl">
-            <h2 className="text-white font-black text-6xl italic uppercase leading-none">{vehicle.model}</h2>
-            <p className="text-white/70 font-bold text-2xl tracking-[0.3em] mt-2 uppercase">{vehicle.client}</p>
+    <div className={`ga-shell${entered ? ' is-entered' : ''}${isExiting ? ' is-exiting' : ''}`}>
+      <div className="ga-scene">
+        <div className="ga-art">
+          <img src={ART_SRC} alt="" draggable={false} />
+          <div ref={nameFit.boxRef} className="ga-slot ga-name" style={artBox(507, 434, 665, 68)}>
+            <span ref={nameFit.textRef}>{title}</span>
           </div>
-
-          <div className="flex items-center gap-6 mt-2">
-            <div className="bg-black/40 px-6 py-4 rounded-2xl border border-white/10">
-              <span className="text-red-400 font-black text-[10px] tracking-widest uppercase block mb-1 opacity-70">MECÂNICO</span>
-              <span className="text-white font-black text-4xl italic uppercase">{vehicle.mechanic}</span>
+          <div
+            ref={plateFit.boxRef}
+            className="ga-slot ga-plate"
+            style={artBox(597, 651, 486, 102)}
+            aria-label={`Placa ${plate}`}
+          >
+            <span ref={plateFit.textRef}>{plate}</span>
+          </div>
+          {mechanic && (
+            <div ref={mechanicFit.boxRef} className="ga-slot ga-mech" style={artBox(709, 800, 380, 36)}>
+              <span ref={mechanicFit.textRef}>{mechanic}</span>
             </div>
-
-            <div className="bg-white rounded-lg border-[4px] border-zinc-800 overflow-hidden shadow-2xl w-[220px]">
-              <div className="bg-[#003399] h-5 px-3 flex items-center justify-between">
-                <span className="text-white font-bold text-[8px] tracking-[0.4em]">BRASIL</span>
-                <div className="w-5 h-3 bg-[#009b3a] rounded-sm flex items-center justify-center border border-white/20">
-                  <div className="w-2 h-2 bg-yellow-400 rotate-45" />
-                </div>
-              </div>
-              <div className="h-14 flex items-center justify-center bg-white">
-                <span className="text-black font-black text-[32px] font-mono tracking-tight uppercase leading-none">
-                  {vehicle.plate.replace('-', '')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-3">
-             <div className="w-2 h-2 bg-white rounded-full animate-ping" />
-             <span className="text-white/50 font-black text-xs tracking-widest uppercase italic">Prioridade Máxima</span>
-          </div>
+          )}
         </div>
       </div>
       <style>{`
-        .text-depth-3d {
-          text-shadow: 
-            1px 1px 0px #450a0a,
-            2px 2px 0px #450a0a,
-            3px 3px 0px #450a0a,
-            4px 4px 0px #450a0a,
-            5px 5px 0px #450a0a,
-            6px 6px 0px #450a0a,
-            7px 7px 0px #450a0a,
-            8px 8px 0px #450a0a,
-            12px 12px 25px rgba(0,0,0,0.6);
+        .ga-shell {
+          position: fixed;
+          inset: 0;
+          z-index: 250;
+          overflow: hidden;
+          transform: translateY(0);
+          transition: transform 1.15s cubic-bezier(0.45, 0.05, 0.25, 1);
         }
-        @keyframes title-entry {
-          0% { transform: scale(0.8) translateY(50px) rotateX(20deg); opacity: 0; }
-          100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
+        .ga-shell.is-exiting { transform: translateY(-100%); }
+        .ga-scene {
+          position: absolute;
+          inset: 0;
+          container-type: size;
+          background: #dc0e0f;
+          transform: translateY(-100%);
         }
-        .animate-title-entry { animation: title-entry 1s cubic-bezier(0.17, 0.67, 0.83, 0.67) 0.3s forwards; opacity: 0; }
-        @keyframes drop-bounce { 
-          0% { transform: translateY(-110%); } 
-          45% { transform: translateY(0); } 
-          100% { transform: translateY(0); } 
+        .ga-shell.is-entered .ga-scene {
+          animation: ga-down 1.5s cubic-bezier(0.2, 0.55, 0.2, 1) forwards;
         }
-        .animate-drop-bounce { animation: drop-bounce 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .ga-art {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: max(100cqw, calc(100cqh * ${ART_W} / ${ART_H}));
+          height: max(100cqh, calc(100cqw * ${ART_H} / ${ART_W}));
+          transform: translate(-50%, -50%);
+        }
+        .ga-art img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: fill;
+          user-select: none;
+        }
+        .ga-slot {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          container-type: size;
+        }
+        .ga-name { overflow: visible; }
+        .ga-slot span {
+          display: block;
+          white-space: nowrap;
+          transform-origin: center center;
+        }
+        .ga-name span {
+          color: #2a2a2a;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 800;
+          font-size: 92cqh;
+          line-height: 1;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .ga-plate span {
+          color: #1a1a1a;
+          font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+          font-weight: 700;
+          font-size: 132cqh;
+          line-height: 0.7;
+          letter-spacing: 0.11em;
+          padding-left: 0.11em;
+        }
+        .ga-mech span {
+          color: #2a2a2a;
+          font-family: Inter, sans-serif;
+          font-weight: 700;
+          font-size: 78cqh;
+          line-height: 1;
+          letter-spacing: 0.01em;
+        }
+        @keyframes ga-down {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(0); }
+        }
       `}</style>
     </div>
   );
