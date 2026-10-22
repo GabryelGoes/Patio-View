@@ -256,6 +256,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         return {
           id: row.id,
           model,
+          brand: row.vehicle_brand?.trim() || null,
           plate: formatOsLabel(row.os_number),
           client: customerName,
           stage: mapStatusToStage(row.status),

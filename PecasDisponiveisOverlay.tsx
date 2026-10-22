@@ -1,13 +1,80 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Vehicle } from './types.ts';
 import { playEventSound } from './utils/tvSounds.ts';
+import { celebrationVehicleParts } from './utils/vehicleBrandLogo.ts';
+import { isAssignedMechanicName } from './utils/mechanicName.ts';
 
 interface PecasDisponiveisOverlayProps {
   vehicle: Vehicle;
   onComplete: () => void;
   soundEnabled: boolean;
   durationMs?: number;
+}
+
+const ART_W = 1678;
+const ART_H = 937;
+const ART_SRC = '/pecas-disponiveis.png';
+
+/** Caixa em porcentagem da arte (1678×937). */
+function artBox(x: number, y: number, w: number, h: number): React.CSSProperties {
+  return {
+    left: `${(x / ART_W) * 100}%`,
+    top: `${(y / ART_H) * 100}%`,
+    width: `${(w / ART_W) * 100}%`,
+    height: `${(h / ART_H) * 100}%`,
+  };
+}
+
+function vehicleTitle(brand: string | null | undefined, model: string): string {
+  const parts = celebrationVehicleParts(brand, model);
+  const modelName = (parts.model || '').trim();
+  const brandName = (parts.brand || '').trim();
+  if (
+    brandName &&
+    modelName &&
+    !modelName.toLocaleLowerCase('pt-BR').startsWith(brandName.toLocaleLowerCase('pt-BR'))
+  ) {
+    return `${brandName} ${modelName}`;
+  }
+  return modelName || brandName || 'Veículo';
+}
+
+function plateChars(plate: string): string {
+  const clean = (plate || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  return clean || '-------';
+}
+
+/** Encaixa o texto na caixa, sem esticar as letras. `boost` aumenta a fonte já encaixada. */
+function useFitWidth(text: string, fill = 0.96, shiftEm = 0, boost = 1) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const el = textRef.current;
+    if (!box || !el) return;
+    let cancelled = false;
+    const fit = () => {
+      if (cancelled || box.clientHeight === 0) return;
+      const boxH = box.clientHeight;
+      el.style.transform = 'none';
+      el.style.fontSize = `${boxH}px`;
+      const byWidth = el.scrollWidth > 0 ? ((box.clientWidth * fill) / el.scrollWidth) * boxH : boxH;
+      const byHeight = el.offsetHeight > 0 ? ((boxH * fill) / el.offsetHeight) * boxH : boxH;
+      el.style.fontSize = `${Math.min(byWidth, byHeight * boost)}px`;
+      el.style.transform = shiftEm ? `translateY(${shiftEm}em)` : 'none';
+    };
+    fit();
+    void document.fonts.ready.then(fit);
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [text, fill, shiftEm, boost]);
+
+  return { boxRef, textRef };
 }
 
 const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
@@ -17,15 +84,43 @@ const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
   durationMs = 7000,
 }) => {
   const [isExiting, setIsExiting] = useState(false);
+  const [entered, setEntered] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+
+  const title = vehicleTitle(vehicle.brand, vehicle.model);
+  const plate = plateChars(vehicle.plate);
+  const mechanic = isAssignedMechanicName(vehicle.mechanic) ? vehicle.mechanic.trim() : '';
+  const nameFit = useFitWidth(title, 0.94, 0, 1.2);
+  const plateFit = useFitWidth(plate, 0.94, -0.04);
+  const mechanicFit = useFitWidth(mechanic, 0.92);
+
+  useEffect(() => {
+    const img = new Image();
+    let cancelled = false;
+    const start = () => {
+      if (cancelled) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!cancelled) setEntered(true);
+        });
+      });
+    };
+    img.onload = start;
+    img.onerror = start;
+    img.src = ART_SRC;
+    if (img.complete) start();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (soundEnabled) void playEventSound('pecasDisponiveis');
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
-      completeTimer = setTimeout(() => onCompleteRef.current(), 1000);
+      completeTimer = setTimeout(() => onCompleteRef.current(), 1150);
     }, durationMs);
     return () => {
       clearTimeout(timer);
@@ -34,71 +129,108 @@ const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
   }, [soundEnabled, durationMs]);
 
   return (
-    <div
-      className={`fixed inset-0 z-[100] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}
-    >
-      <div className="absolute inset-0 bg-[#ec4899] flex flex-col items-center justify-center animate-drop-bounce overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(244,114,182,0.85)_0%,rgba(190,24,93,1)_100%)]" />
-
-        <div className="relative z-10 text-center flex flex-col items-center gap-6">
-          <h1 className="text-white font-black italic text-[10vw] uppercase leading-[0.85] text-depth-3d-pink animate-title-entry">
-            PEÇAS<br />
-            DISPONÍVEIS
-          </h1>
-
-          <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[40px] border border-white/20 w-full max-w-4xl shadow-2xl">
-            <h2 className="text-white font-black text-6xl italic uppercase leading-none">{vehicle.model}</h2>
-            <p className="text-white/70 font-bold text-2xl tracking-[0.3em] mt-2 uppercase">{vehicle.client}</p>
+    <div className={`pd-shell${entered ? ' is-entered' : ''}${isExiting ? ' is-exiting' : ''}`}>
+      <div className="pd-scene">
+        <div className="pd-art">
+          <img src={ART_SRC} alt="" draggable={false} />
+          <div ref={nameFit.boxRef} className="pd-slot pd-name" style={artBox(504, 529, 661, 62)}>
+            <span ref={nameFit.textRef}>{title}</span>
           </div>
-
-          <div className="flex items-center gap-6 mt-2">
-            <div className="bg-black/40 px-6 py-4 rounded-2xl border border-white/10">
-              <span className="text-pink-200 font-black text-[10px] tracking-widest uppercase block mb-1 opacity-90">
-                MECÂNICO
-              </span>
-              <span className="text-white font-black text-4xl italic uppercase">{vehicle.mechanic}</span>
-            </div>
-
-            <div className="bg-white rounded-lg border-[4px] border-zinc-800 overflow-hidden shadow-2xl w-[220px]">
-              <div className="bg-[#003399] h-5 px-3 flex items-center justify-between">
-                <span className="text-white font-bold text-[8px] tracking-[0.4em]">BRASIL</span>
-                <div className="w-5 h-3 bg-[#009b3a] rounded-sm flex items-center justify-center border border-white/20">
-                  <div className="w-2 h-2 bg-yellow-400 rotate-45" />
-                </div>
-              </div>
-              <div className="h-14 flex items-center justify-center bg-white">
-                <span className="text-black font-black text-[32px] font-mono tracking-tight uppercase leading-none">
-                  {vehicle.plate.replace('-', '')}
-                </span>
-              </div>
-            </div>
+          <div
+            ref={plateFit.boxRef}
+            className="pd-slot pd-plate"
+            style={artBox(598, 663, 485, 100)}
+            aria-label={`Placa ${plate}`}
+          >
+            <span ref={plateFit.textRef}>{plate}</span>
           </div>
+          {mechanic && (
+            <div ref={mechanicFit.boxRef} className="pd-slot pd-mech" style={artBox(708, 820, 380, 36)}>
+              <span ref={mechanicFit.textRef}>{mechanic}</span>
+            </div>
+          )}
         </div>
       </div>
       <style>{`
-        .text-depth-3d-pink {
-          text-shadow:
-            1px 1px 0px #9d174d,
-            2px 2px 0px #9d174d,
-            3px 3px 0px #9d174d,
-            4px 4px 0px #9d174d,
-            5px 5px 0px #9d174d,
-            6px 6px 0px #9d174d,
-            7px 7px 0px #9d174d,
-            8px 8px 0px #9d174d,
-            12px 12px 25px rgba(0,0,0,0.5);
+        .pd-shell {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          overflow: hidden;
+          transform: translateY(0);
+          transition: transform 1.15s cubic-bezier(0.45, 0.05, 0.25, 1);
         }
-        @keyframes title-entry {
-          0% { transform: scale(0.8) translateY(50px) rotateX(20deg); opacity: 0; }
-          100% { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
+        .pd-shell.is-exiting { transform: translateY(-100%); }
+        .pd-scene {
+          position: absolute;
+          inset: 0;
+          container-type: size;
+          background: #f82875;
+          transform: translateY(-100%);
         }
-        .animate-title-entry { animation: title-entry 1s cubic-bezier(0.17, 0.67, 0.83, 0.67) 0.3s forwards; opacity: 0; }
-        @keyframes drop-bounce {
-          0% { transform: translateY(-110%); }
-          45% { transform: translateY(0); }
-          100% { transform: translateY(0); }
+        .pd-shell.is-entered .pd-scene {
+          animation: pd-down 1.5s cubic-bezier(0.2, 0.55, 0.2, 1) forwards;
         }
-        .animate-drop-bounce { animation: drop-bounce 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .pd-art {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: max(100cqw, calc(100cqh * ${ART_W} / ${ART_H}));
+          height: max(100cqh, calc(100cqw * ${ART_H} / ${ART_W}));
+          transform: translate(-50%, -50%);
+        }
+        .pd-art img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: fill;
+          user-select: none;
+        }
+        .pd-slot {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          container-type: size;
+        }
+        .pd-name { overflow: visible; }
+        .pd-slot span {
+          display: block;
+          white-space: nowrap;
+          transform-origin: center center;
+        }
+        .pd-name span {
+          color: #2a2a2a;
+          font-family: Montserrat, Inter, sans-serif;
+          font-weight: 800;
+          font-size: 92cqh;
+          line-height: 1;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .pd-plate span {
+          color: #1a1a1a;
+          font-family: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+          font-weight: 700;
+          font-size: 132cqh;
+          line-height: 0.7;
+          letter-spacing: 0.11em;
+          padding-left: 0.11em;
+        }
+        .pd-mech span {
+          color: #2a2a2a;
+          font-family: Inter, sans-serif;
+          font-weight: 700;
+          font-size: 78cqh;
+          line-height: 1;
+          letter-spacing: 0.01em;
+        }
+        @keyframes pd-down {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(0); }
+        }
       `}</style>
     </div>
   );
