@@ -43,8 +43,8 @@ function plateChars(plate: string): string {
   return clean || '-------';
 }
 
-/** Encaixa o texto na caixa, sem esticar as letras. */
-function useFitWidth(text: string, fill = 0.96, shiftEm = 0) {
+/** Encaixa o texto na caixa, sem esticar as letras. `boost` aumenta a fonte já encaixada. */
+function useFitWidth(text: string, fill = 0.96, shiftEm = 0, boost = 1) {
   const boxRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
 
@@ -60,7 +60,9 @@ function useFitWidth(text: string, fill = 0.96, shiftEm = 0) {
       el.style.fontSize = `${boxH}px`;
       const byWidth = el.scrollWidth > 0 ? ((box.clientWidth * fill) / el.scrollWidth) * boxH : boxH;
       const byHeight = el.offsetHeight > 0 ? ((boxH * fill) / el.offsetHeight) * boxH : boxH;
-      el.style.fontSize = `${Math.min(byWidth, byHeight)}px`;
+      // O boost aumenta a fonte, mas a largura da caixa continua sendo o limite
+      // para o texto não cobrir o que está ao lado.
+      el.style.fontSize = `${Math.min(byWidth, byHeight * boost)}px`;
       el.style.transform = shiftEm ? `translateY(${shiftEm}em)` : 'none';
     };
     fit();
@@ -71,7 +73,7 @@ function useFitWidth(text: string, fill = 0.96, shiftEm = 0) {
       cancelled = true;
       observer.disconnect();
     };
-  }, [text, fill, shiftEm]);
+  }, [text, fill, shiftEm, boost]);
 
   return { boxRef, textRef };
 }
@@ -90,7 +92,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   const title = vehicleTitle(vehicle.brand, vehicle.model);
   const plate = plateChars(vehicle.plate);
   const mechanic = isAssignedMechanicName(vehicle.mechanic) ? vehicle.mechanic.trim() : '';
-  const nameFit = useFitWidth(title, 0.94);
+  const nameFit = useFitWidth(title, 0.94, 0, 1.2);
   const plateFit = useFitWidth(plate, 0.94, -0.04);
   const mechanicFit = useFitWidth(mechanic, 0.92);
 
@@ -194,6 +196,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           overflow: hidden;
           container-type: size;
         }
+        .cele-name { overflow: visible; }
         .cele-slot span {
           display: block;
           white-space: nowrap;
