@@ -256,7 +256,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
           {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
-            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
+            <div className={`w-6 h-6 flex items-center justify-center border-2 rounded-full shrink-0 relative mr-2 overflow-visible ${isAwaitingEvaluationStage(vehicle.stage) ? 'border-red-500 text-red-500' : 'border-current'}`}>
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
               </div>
