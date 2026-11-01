@@ -19,10 +19,10 @@ import { useTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
 import { collectHeaderGoals, displayHeaderGoalLabel, goalBarPercent } from './utils/tvHeaderGoals.ts';
 
-/** Botões do cabeçalho, o dobro do tamanho anterior (TV de 55"). */
+/** Engrenagem do cabeçalho: 20% menor que o tamanho da TV de 55". */
 const HEADER_BTN =
-  'h-11 w-14 rounded-lg border flex items-center justify-center transition-all active:scale-95';
-const HEADER_ICON = 'h-7 w-7 fill-current';
+  'h-[35.2px] w-[44.8px] rounded-lg border flex items-center justify-center transition-all active:scale-95';
+const HEADER_ICON = 'h-[22.4px] w-[22.4px] fill-current';
 
 const STAGE_PRIORITY: Record<string, number> = TV_CONFIG.stagePriority;
 
