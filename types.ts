@@ -29,6 +29,8 @@ export interface Vehicle {
   rawDueDate?: Date; // Data original para cálculos
   mechanic: string;
   lastActivity: string;
+  /** ISO de created_at. Usado para o tempo corrido em Aguardando Avaliação. */
+  registeredAt?: string;
   /** Etiqueta de garantia (vem da API): persiste em qualquer etapa até remover no modal do sistema principal. Na TV, o aro vermelho só aparece quando garantiaTag é true e o veículo NÃO está na etapa Garantia. */
   garantiaTag?: boolean;
   /** Compartimento da bancada do laboratório (1..24). NULL/undefined = fora da bancada. */

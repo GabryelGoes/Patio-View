@@ -158,6 +158,32 @@ const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
   );
 };
 
+function formatWaiting(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const clock = [hours, minutes, seconds].map((n) => String(n).padStart(2, '0')).join(':');
+  return days > 0 ? `${days}d ${clock}` : clock;
+}
+
+/** Tempo corrido desde o cadastro. Só aparece em Aguardando Avaliação. */
+const WaitingSinceRegistration: React.FC<{ since?: string }> = ({ since }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const start = since ? new Date(since).getTime() : Number.NaN;
+  const label = Number.isFinite(start) ? formatWaiting(now - start) : '--:--:--';
+  return (
+    <p className="w-full text-center text-[1.4625rem] font-black tabular-nums leading-none tracking-tight text-red-500">
+      {label}
+    </p>
+  );
+};
+
 const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyHighlight, isAlerting }) => {
   const [showAnim, setShowAnim] = useState(false);
   const colorClass = getStageColors(vehicle.stage);
@@ -309,11 +335,12 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex flex-col justify-center">
-        <p className="text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
-        <p className={`text-[1.4625rem] font-black tabular-nums leading-none tracking-tight ${awaitingEval ? 'text-red-500' : 'opacity-80'}`}>
-          {vehicle.lastActivity}
-        </p>
+      <div className={`w-[14%] border-l border-current/10 h-full flex items-center ${awaitingEval ? 'justify-center px-2' : 'pl-6'}`}>
+        {awaitingEval ? (
+          <WaitingSinceRegistration since={vehicle.registeredAt} />
+        ) : (
+          <p className="text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+        )}
       </div>
 
       <style>{`
