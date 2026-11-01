@@ -559,7 +559,7 @@ const App: React.FC = () => {
         )}
       </header>
 
-      <div className={`flex w-full px-12 mb-2 text-[13.2px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
+      <div className={`flex w-full px-12 mb-2 text-[15.44px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
         {isSlidePage ? (
           <div className="w-full text-center">Conteúdo da TV</div>
         ) : (
@@ -568,7 +568,7 @@ const App: React.FC = () => {
             <div className="w-[16%] pl-6">Cliente</div>
             <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
             <div className="w-[14%] pl-6 text-center">{TV_CONFIG.columns.fourth}</div>
-            <div className="w-[14%] pl-6">{TV_CONFIG.columns.fifth}</div>
+            <div className="w-[14%] text-center">{TV_CONFIG.columns.fifth}</div>
           </>
         )}
       </div>

@@ -207,12 +207,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   }, [isFinalizado]);
 
   const getFontSizeClass = (text: string) => {
-    if (text.length > 22) return 'text-xl';
-    if (text.length > 15) return 'text-2xl';
-    return 'text-3xl';
+    if (text.length > 22) return 'text-[1.4625rem]';
+    if (text.length > 15) return 'text-[1.755rem]';
+    return 'text-[2.19375rem]';
   };
 
   const stageFontClass = getFontSizeClass(displayStage);
+  const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
 
   return (
     <div
@@ -228,7 +229,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       style={cardAccentStyle}
     >
       <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
-        <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
+        <h2 className="text-[2.19375rem] font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
       </div>
@@ -240,7 +241,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
             .filter(Boolean)
             .slice(0, 2)
             .map((word, i) => (
-              <span key={i} className="text-xl truncate">{word}</span>
+              <span key={i} className="text-[1.4625rem] truncate">{word}</span>
             ))}
         </div>
       </div>
@@ -255,8 +256,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
-            <div className={`w-6 h-6 flex items-center justify-center border-2 rounded-full shrink-0 relative mr-2 overflow-visible ${isAwaitingEvaluationStage(vehicle.stage) ? 'border-red-500 text-red-500' : 'border-current'}`}>
+          {isAguardando && !isAwaitingEvaluationStage(vehicle.stage) && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
+            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
               </div>
@@ -308,8 +309,18 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex items-center">
-        <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+      <div className={`w-[14%] border-l border-current/10 h-full flex items-center ${awaitingEval ? 'justify-center gap-2 px-3' : 'pl-6'}`}>
+        {awaitingEval && (
+          <div className="w-7 h-7 flex items-center justify-center border-2 border-red-500 text-red-500 rounded-full shrink-0 relative overflow-visible">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
+              <div className="absolute left-1/2 bottom-0 w-[2px] h-[6px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
+            </div>
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
+              <div className="absolute left-1/2 bottom-0 w-[2px] h-[8px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
+            </div>
+          </div>
+        )}
+        <p className="text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
       </div>
 
       <style>{`
