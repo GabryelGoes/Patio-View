@@ -10,13 +10,8 @@ const Clock: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-baseline gap-4 whitespace-nowrap">
-      <div className="text-[1.6875rem] font-bold text-zinc-500 uppercase tracking-[0.13em]">
-        {time.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
-      </div>
-      <div className="text-[2.8125rem] font-black tracking-tighter text-white tabular-nums leading-none">
-        {time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-      </div>
+    <div className="text-[2.8125rem] font-black tracking-tighter text-white tabular-nums leading-none whitespace-nowrap">
+      {time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
     </div>
   );
 };
