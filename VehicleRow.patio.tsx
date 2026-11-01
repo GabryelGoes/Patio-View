@@ -82,8 +82,8 @@ const MagnifierAnimation: React.FC = () => (
 );
 
 const CarLiftAnimation: React.FC = () => (
-  <div className="relative h-28 w-32 shrink-0 flex items-center justify-center overflow-visible">
-    <svg viewBox="-6 -22 80 76" className="h-full w-full text-white overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div className="relative w-48 h-28 shrink-0 flex items-center justify-center mr-1 overflow-visible translate-x-[30%]">
+    <svg viewBox="-40 -10 165 70" className="w-full h-full text-white overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="45" y="15" width="4" height="30" rx="1" fill="currentColor" opacity="0.4" />
       <rect x="39" y="45" width="16" height="2" rx="1" fill="currentColor" opacity="0.4" />
       <g className="animate-lift-move-workshop">
@@ -271,8 +271,13 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </div>
       </div>
 
-      <div className="w-[34%] border-l border-current/10 relative h-full flex items-center justify-center overflow-hidden px-2">
-        {isFinalizado ? (
+      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isEmServico ? 'pl-6 pr-2' : 'justify-center px-2'}`}>
+        {isEmServico ? (
+          <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
+            <CarLiftAnimation />
+            <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
+          </div>
+        ) : isFinalizado ? (
           <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
             <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
               <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap text-center`}>{displayStage}</p>
@@ -283,8 +288,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           </div>
         ) : (
           <div className="flex max-w-full items-center justify-center gap-2">
-            {isEmServico && <CarLiftAnimation />}
-            {!isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
+            {isAvaliacaoTecnica && <MagnifierAnimation />}
             {isFaseDeTeste && <FaseDeTesteCarAnimation />}
             {isPecasDisponiveis && <PecasDisponiveisIcon />}
             {isGarantia && <GearAnimation />}
