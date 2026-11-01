@@ -566,7 +566,7 @@ const App: React.FC = () => {
           <>
             <div className="w-[22%]">{TV_CONFIG.columns.first}</div>
             <div className="w-[16%] text-center">Cliente</div>
-            <div className="w-[34%] pl-6 text-center">Etapa Atual</div>
+            <div className="w-[34%] text-center">Etapa Atual</div>
             <div className="w-[14%] pl-6 text-center">{TV_CONFIG.columns.fourth}</div>
             <div className="w-[14%] text-center">{TV_CONFIG.columns.fifth}</div>
           </>
