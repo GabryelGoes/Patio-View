@@ -4,6 +4,7 @@
 
 import { WorkshopData, Vehicle, Stage, TvSlide, TvWeeklyGoal } from '../types';
 import { normalizeTvChimeConfig, type TvChimeScheduleConfig } from '../utils/tvChimeSchedule';
+import { attachSlideGoalPeriod, normalizePlaylistGoal } from '../utils/tvHeaderGoals';
 
 const getEnv = (key: string): string =>
   (import.meta as any).env?.[key] ?? '';
@@ -177,35 +178,30 @@ function normalizeTvSlide(raw: Record<string, unknown>): TvSlide {
     : Array.isArray(raw.media_playlist)
       ? (raw.media_playlist as unknown[]).map((u) => String(u).trim()).filter(Boolean)
       : base.mediaPlaylist;
-  return { ...base, pinImmediate: pin, mediaPlaylist };
+  return attachSlideGoalPeriod({ ...base, pinImmediate: pin, mediaPlaylist }, raw);
 }
 
 async function fetchTvPlaylist(): Promise<{
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  monthlyGoal: TvWeeklyGoal | null;
   chimeSchedule: TvChimeScheduleConfig | null;
 }> {
-  if (!API_BASE) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
+  const empty = { tvSlides: [], weeklyGoal: null, monthlyGoal: null, chimeSchedule: null };
+  if (!API_BASE) return empty;
   try {
     const res = await fetch(`${API_BASE}/tv/playlist?scope=laboratorio`, { cache: 'no-store', headers: tvHeaders() });
-    if (!res.ok) return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
+    if (!res.ok) return empty;
     const data = await res.json();
     const slides = Array.isArray(data.slides)
       ? (data.slides as Record<string, unknown>[]).map(normalizeTvSlide)
       : [];
-    const weeklyGoal =
-      data.weeklyGoal &&
-      typeof data.weeklyGoal === 'object' &&
-      data.weeklyGoal !== null
-        ? ({
-            ...(data.weeklyGoal as TvWeeklyGoal),
-            showWeeklyBar: (data.weeklyGoal as { showWeeklyBar?: boolean }).showWeeklyBar !== false,
-          } as TvWeeklyGoal)
-        : null;
+    const weeklyGoal = normalizePlaylistGoal(data.weeklyGoal, 'weekly');
+    const monthlyGoal = normalizePlaylistGoal(data.monthlyGoal ?? data.monthly_goal, 'monthly');
     const chimeSchedule = normalizeTvChimeConfig(data.chimeSchedule ?? null);
-    return { tvSlides: slides, weeklyGoal, chimeSchedule };
+    return { tvSlides: slides, weeklyGoal, monthlyGoal, chimeSchedule };
   } catch {
-    return { tvSlides: [], weeklyGoal: null, chimeSchedule: null };
+    return empty;
   }
 }
 
@@ -217,6 +213,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles: [],
       tvSlides: [],
       weeklyGoal: null,
+      monthlyGoal: null,
       chimeSchedule: null,
     };
   }
@@ -235,6 +232,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
         vehicles: [],
         tvSlides: tvBundle.tvSlides,
         weeklyGoal: tvBundle.weeklyGoal,
+        monthlyGoal: tvBundle.monthlyGoal,
         chimeSchedule: tvBundle.chimeSchedule,
       };
     }
@@ -283,6 +281,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles,
       tvSlides: tvBundle.tvSlides,
       weeklyGoal: tvBundle.weeklyGoal,
+      monthlyGoal: tvBundle.monthlyGoal,
       chimeSchedule: tvBundle.chimeSchedule,
     };
   } catch (err) {
@@ -292,6 +291,7 @@ export async function fetchWorkshopData(): Promise<WorkshopData> {
       vehicles: [],
       tvSlides: [],
       weeklyGoal: null,
+      monthlyGoal: null,
       chimeSchedule: null,
     };
   }
