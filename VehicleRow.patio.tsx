@@ -256,7 +256,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
           ) : null}
           {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
           
-          {isAguardando && !isAwaitingEvaluationStage(vehicle.stage) && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
+          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
             <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
                 <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
@@ -309,18 +309,11 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className={`w-[14%] border-l border-current/10 h-full flex items-center ${awaitingEval ? 'justify-center gap-2 px-3' : 'pl-6'}`}>
-        {awaitingEval && (
-          <div className="w-7 h-7 flex items-center justify-center border-2 border-red-500 text-red-500 rounded-full shrink-0 relative overflow-visible">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
-              <div className="absolute left-1/2 bottom-0 w-[2px] h-[6px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-            </div>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
-              <div className="absolute left-1/2 bottom-0 w-[2px] h-[8px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-            </div>
-          </div>
-        )}
+      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex flex-col justify-center">
         <p className="text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+        <p className={`text-[1.4625rem] font-black tabular-nums leading-none tracking-tight ${awaitingEval ? 'text-red-500' : 'opacity-80'}`}>
+          {vehicle.lastActivity}
+        </p>
       </div>
 
       <style>{`
