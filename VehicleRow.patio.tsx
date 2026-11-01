@@ -159,13 +159,12 @@ const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
 };
 
 function formatWaiting(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(total / 86400);
-  const hours = Math.floor((total % 86400) / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const seconds = total % 60;
-  const clock = [hours, minutes, seconds].map((n) => String(n).padStart(2, '0')).join(':');
-  return days > 0 ? `${days}d ${clock}` : clock;
+  const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  return `${hours}h ${String(minutes).padStart(2, '0')}min`;
 }
 
 /** Tempo corrido desde o cadastro. Só aparece em Aguardando Avaliação. */
@@ -176,7 +175,7 @@ const WaitingSinceRegistration: React.FC<{ since?: string }> = ({ since }) => {
     return () => window.clearInterval(id);
   }, []);
   const start = since ? new Date(since).getTime() : Number.NaN;
-  const label = Number.isFinite(start) ? formatWaiting(now - start) : '--:--:--';
+  const label = Number.isFinite(start) ? formatWaiting(now - start) : '0h 00min';
   return (
     <p className="w-full text-center text-[1.4625rem] font-black tabular-nums leading-none tracking-tight text-red-500">
       {label}
@@ -233,9 +232,9 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   }, [isFinalizado]);
 
   const getFontSizeClass = (text: string) => {
-    if (text.length > 22) return 'text-[1.4625rem]';
-    if (text.length > 15) return 'text-[1.755rem]';
-    return 'text-[2.19375rem]';
+    if (text.length > 22) return 'text-xl';
+    if (text.length > 15) return 'text-2xl';
+    return 'text-3xl';
   };
 
   const stageFontClass = getFontSizeClass(displayStage);
@@ -260,8 +259,8 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         </h2>
       </div>
 
-      <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">
-        <div className="flex flex-col uppercase font-black tracking-tight leading-[1.05]">
+      <div className="w-[16%] border-l border-current/10 px-2 overflow-hidden flex items-center justify-center">
+        <div className="flex w-full flex-col items-center text-center uppercase font-black tracking-tight leading-[1.05]">
           {(vehicle.client || 'Cliente')
             .split(/\s+/)
             .filter(Boolean)
@@ -335,11 +334,11 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className={`w-[14%] border-l border-current/10 h-full flex items-center ${awaitingEval ? 'justify-center px-2' : 'pl-6'}`}>
+      <div className="w-[14%] border-l border-current/10 h-full flex items-center justify-center px-2">
         {awaitingEval ? (
           <WaitingSinceRegistration since={vehicle.registeredAt} />
         ) : (
-          <p className="text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+          <p className="w-full text-center text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
         )}
       </div>
 
