@@ -18,49 +18,12 @@ import { getVideoSources, resolveVideoSlideForVisit } from './utils/tvSlideVideo
 import { isAwaitingEvaluationStage } from './utils/tvStages.ts';
 import { useTvSettings, setTvSettings, isWithinBusinessHours } from './config/tvSettings.ts';
 import TvSettingsPanel from './TvSettingsPanel.tsx';
-import {
-  useVideoFolder,
-  chooseFolder,
-  ensureGranted,
-  supportsLocalVideo,
-} from './utils/localVideoFolder.ts';
+import { collectHeaderGoals, displayHeaderGoalLabel, goalBarPercent } from './utils/tvHeaderGoals.ts';
 
-/** Botão para configurar/autorizar a pasta de vídeos locais da TV. */
-const VideoFolderButton: React.FC = () => {
-  const folder = useVideoFolder();
-  if (!supportsLocalVideo()) return null;
-
-  const ok = folder.hasFolder && folder.granted;
-  const needsPermission = folder.hasFolder && !folder.granted;
-  const title = ok
-    ? 'Pasta de vídeos (opcional)'
-    : needsPermission
-      ? 'Permitir acesso aos vídeos'
-      : 'Configurar pasta de vídeos (opcional)';
-
-  const onClick = () => {
-    if (needsPermission) void ensureGranted();
-    else void chooseFolder();
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
-        ok
-          ? 'bg-zinc-800 text-emerald-400 border-zinc-700'
-          : needsPermission
-            ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 animate-pulse'
-            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-      }`}
-    >
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-        <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-      </svg>
-    </button>
-  );
-};
+/** Botões do cabeçalho, o dobro do tamanho anterior (TV de 55"). */
+const HEADER_BTN =
+  'h-11 w-14 rounded-lg border flex items-center justify-center transition-all active:scale-95';
+const HEADER_ICON = 'h-7 w-7 fill-current';
 
 const STAGE_PRIORITY: Record<string, number> = TV_CONFIG.stagePriority;
 
@@ -267,9 +230,14 @@ const App: React.FC = () => {
     return () => window.removeEventListener('tv-test-evaluation-alert', onTest);
   }, []);
 
+  const contentSlides = useMemo(
+    () => (data?.tvSlides ?? []).filter((sl) => sl.slideType !== 'goal'),
+    [data?.tvSlides]
+  );
+
   useEffect(() => {
     if (isEvaluationAlertActive && data) {
-      if (data.tvSlides?.some((sl) => sl.pinImmediate)) return;
+      if (contentSlides.some((sl) => sl.pinImmediate)) return;
       const firstPendingIndex = data.vehicles.findIndex((v) => isAwaitingEvaluationStage(v.stage));
       if (firstPendingIndex !== -1) {
         setPage(Math.floor(firstPendingIndex / CARS_PER_PAGE));
@@ -278,14 +246,13 @@ const App: React.FC = () => {
   }, [isEvaluationAlertActive, data]);
 
   const vehiclePages = Math.max(1, Math.ceil((data?.vehicles.length || 0) / CARS_PER_PAGE));
-  const slideCount = data?.tvSlides?.length ?? 0;
+  const slideCount = contentSlides.length;
   const totalPages = vehiclePages + slideCount;
 
   const pinnedSlideIndex = useMemo(() => {
-    const slides = data?.tvSlides;
-    if (!slides?.length) return -1;
-    return slides.findIndex((sl) => sl.pinImmediate === true);
-  }, [data?.tvSlides]);
+    if (!contentSlides.length) return -1;
+    return contentSlides.findIndex((sl) => sl.pinImmediate === true);
+  }, [contentSlides]);
 
   const isPinnedMode = pinnedSlideIndex >= 0;
 
@@ -298,9 +265,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!data || isPinnedMode) return;
-    const tp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE)) + (data.tvSlides?.length ?? 0);
+    const tp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE)) + contentSlides.length;
     if (page >= tp) setPage(0);
-  }, [page, data?.vehicles?.length, data?.tvSlides?.length, isPinnedMode]);
+  }, [page, data?.vehicles?.length, contentSlides.length, isPinnedMode]);
 
   useEffect(() => {
     if (!data) return;
@@ -315,14 +282,14 @@ const App: React.FC = () => {
     if (hasActiveOverlay) return;
 
     const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
-    const sc = data.tvSlides?.length ?? 0;
+    const sc = contentSlides.length;
     const total = vp + sc;
     if (total <= 1) return;
 
     let ms = Math.max(3000, settings.pageSeconds * 1000);
-    if (page >= vp && page < vp + sc && data.tvSlides) {
-      const slide = data.tvSlides[page - vp];
-      const slideSec = Number(slide.durationSeconds);
+    if (page >= vp && page < vp + sc) {
+      const slide = contentSlides[page - vp];
+      const slideSec = Number(slide?.durationSeconds);
       // Slides da gestão usam a duração própria; se inválida, cai no tempo da Exibição.
       if (Number.isFinite(slideSec) && slideSec >= 3) {
         ms = Math.min(120000, Math.max(3000, slideSec * 1000));
@@ -336,7 +303,7 @@ const App: React.FC = () => {
   }, [
     page,
     data?.vehicles?.length,
-    data?.tvSlides,
+    contentSlides,
     celebrationQueue.length,
     pecasDisponiveisQueue.length,
     garantiaQueue.length,
@@ -348,17 +315,17 @@ const App: React.FC = () => {
   ]);
 
   const isSlidePage = slideCount > 0 && page >= vehiclePages;
-  const currentSlide = isSlidePage && data?.tvSlides ? data.tvSlides[page - vehiclePages] : null;
+  const currentSlide = isSlidePage ? contentSlides[page - vehiclePages] ?? null : null;
 
   /** Ao sair do slide de vídeo, avança o índice para a próxima visita (1 vídeo por passagem na paginação). */
   useEffect(() => {
-    if (!data?.tvSlides?.length) return;
+    if (!contentSlides.length || !data) return;
     const vp = Math.max(1, Math.ceil(data.vehicles.length / CARS_PER_PAGE));
 
     if (prevPageRef.current !== null && prevPageRef.current !== page) {
       const prev = prevPageRef.current;
       if (prev >= vp) {
-        const leftSlide = data.tvSlides[prev - vp];
+        const leftSlide = contentSlides[prev - vp];
         if (leftSlide?.slideType === 'video' && getVideoSources(leftSlide).length > 1) {
           videoVisitCounterRef.current[leftSlide.id] = (videoVisitCounterRef.current[leftSlide.id] ?? 0) + 1;
           setVideoVisitVersion((v) => v + 1);
@@ -366,7 +333,7 @@ const App: React.FC = () => {
       }
     }
     prevPageRef.current = page;
-  }, [page, data?.vehicles?.length, data?.tvSlides]);
+  }, [page, data, contentSlides]);
 
   const displaySlide = useMemo(() => {
     if (!currentSlide) return null;
@@ -443,15 +410,15 @@ const App: React.FC = () => {
     onFire: onTvChimeFire,
   });
 
-  const weeklyPercent =
-    data?.weeklyGoal &&
-    data.weeklyGoal.targetAmount > 0 &&
-    Number.isFinite(data.weeklyGoal.currentAmount / data.weeklyGoal.targetAmount)
-      ? Math.max(
-          0,
-          Math.min(130, (data.weeklyGoal.currentAmount / data.weeklyGoal.targetAmount) * 100)
-        )
-      : 0;
+  const headerGoals = useMemo(
+    () => collectHeaderGoals(data?.weeklyGoal, data?.monthlyGoal, data?.tvSlides),
+    [data?.weeklyGoal, data?.monthlyGoal, data?.tvSlides]
+  );
+  const headerGoalPeriodCounts = useMemo(() => {
+    const counts = { weekly: 0, monthly: 0 };
+    for (const goal of headerGoals) counts[goal.period] += 1;
+    return counts;
+  }, [headerGoals]);
 
   if (loading && !data) return <div className="h-screen bg-black flex items-center justify-center text-white font-black">SINCRONIZANDO...</div>;
 
@@ -538,102 +505,107 @@ const App: React.FC = () => {
         />
       )}
 
-      <header className="grid grid-cols-3 items-end mb-4 px-4 h-14">
-        <h1 className="font-black italic text-3xl">
-          <span className={TV_CONFIG.brandAccentClass}>REI DO ABS</span>
-          <span className="text-white/20 ml-3 text-2xl uppercase">{TV_CONFIG.sectionLabel}</span>
-        </h1>
-        <div className="text-center pb-1 flex flex-col items-center">
-          <p className={`text-[10px] font-black ${TV_CONFIG.countClass} tracking-[0.2em] uppercase mb-0.5`}>
-            {TV_CONFIG.countText(data?.vehicles.length || 0)}
-          </p>
-          <p className="text-[11px] font-bold text-zinc-500 tracking-[0.25em] uppercase leading-none">
-            {isEvaluationAlertActive 
-              ? <span className={`${TV_CONFIG.alertTextClass} animate-pulse`}>ALERTA: AVALIAÇÃO PENDENTE</span> 
-              : isSlidePage
-                ? (currentSlide?.pinImmediate
-                  ? <span className="text-amber-400/95">TV — CONTEÚDO FIXO</span>
-                  : <span className="text-emerald-400/90">TV — CONTEÚDO</span>)
-                : `PÁGINA ${page + 1} - ${totalPagesCount}`}
-          </p>
-        </div>
-        <div className="flex justify-end items-center gap-4">
-          <button
-            onClick={() => clearTvMode()}
-            title="Trocar painel (Pátio / Laboratório)"
-            className="w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-              <path d="M7.41 18.59 8.83 20 4 15.17l4.83-4.83-1.42 1.41L5.83 13H16v2H5.83zM16.59 5.41 15.17 4 20 8.83l-4.83 4.83 1.42-1.41L18.17 11H8V9h10.17z" />
-            </svg>
-          </button>
-          <VideoFolderButton />
-          {fullscreen.supported && (
+      <header className="mb-3 shrink-0 px-4">
+        <div className="relative flex items-end justify-between gap-4">
+          <h1 className="font-black italic text-3xl shrink-0">
+            <span className={TV_CONFIG.brandAccentClass}>REI DO ABS</span>
+            <span className="text-white/20 ml-3 text-2xl uppercase">{TV_CONFIG.sectionLabel}</span>
+          </h1>
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center flex flex-col items-center">
+            <p className={`text-xl font-black ${TV_CONFIG.countClass} tracking-[0.2em] uppercase mb-0.5`}>
+              {TV_CONFIG.countText(data?.vehicles.length || 0)}
+            </p>
+            <p className="text-[11px] font-bold text-zinc-500 tracking-[0.25em] uppercase leading-none">
+              {isEvaluationAlertActive 
+                ? <span className={`${TV_CONFIG.alertTextClass} animate-pulse`}>ALERTA: AVALIAÇÃO PENDENTE</span> 
+                : isSlidePage
+                  ? (currentSlide?.pinImmediate
+                    ? <span className="text-amber-400/95">TV — CONTEÚDO FIXO</span>
+                    : <span className="text-emerald-400/90">TV — CONTEÚDO</span>)
+                  : `PÁGINA ${page + 1} - ${totalPagesCount}`}
+            </p>
+          </div>
+          <div className="flex shrink-0 justify-end items-center gap-3">
             <button
-              onClick={() => void fullscreen.toggle()}
-              title={fullscreen.active ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
-              className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
-                fullscreen.active
-                  ? 'bg-[#009c3b]/20 text-[#00c247] border-[#00c247]/40'
-                  : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
+              onClick={() => clearTvMode()}
+              title="Trocar painel (Pátio / Laboratório)"
+              className={`${HEADER_BTN} bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white`}
+            >
+              <svg viewBox="0 0 24 24" className={HEADER_ICON}>
+                <path d="M7.41 18.59 8.83 20 4 15.17l4.83-4.83-1.42 1.41L5.83 13H16v2H5.83zM16.59 5.41 15.17 4 20 8.83l-4.83 4.83 1.42-1.41L18.17 11H8V9h10.17z" />
+              </svg>
+            </button>
+            {fullscreen.supported && (
+              <button
+                onClick={() => void fullscreen.toggle()}
+                title={fullscreen.active ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
+                className={`${HEADER_BTN} ${
+                  fullscreen.active
+                    ? 'bg-[#009c3b]/20 text-[#00c247] border-[#00c247]/40'
+                    : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className={HEADER_ICON}>
+                  {fullscreen.active ? (
+                    <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+                  ) : (
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                  )}
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Configurações da TV"
+              className={`${HEADER_BTN} bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white`}
+            >
+              <svg viewBox="0 0 24 24" className={HEADER_ICON}>
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setTvSettings({ ...settings, soundMode: settings.soundMode === 'off' ? 'schedule' : 'off' })}
+              title={soundEnabled ? 'Silenciar som da TV' : 'Ativar som da TV'}
+              className={`${HEADER_BTN} ${
+                soundEnabled
+                  ? TV_CONFIG.soundOnClass
+                  : 'bg-red-500/10 text-red-500 border-red-500/30'
               }`}
             >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                {fullscreen.active ? (
-                  <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+              <svg viewBox="0 0 24 24" className={HEADER_ICON}>
+                {soundEnabled ? (
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                 ) : (
-                  <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
                 )}
               </svg>
             </button>
-          )}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Configurações da TV"
-            className="w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-            </svg>
-          </button>
-          <button 
-            onClick={() => setTvSettings({ ...settings, soundMode: settings.soundMode === 'off' ? 'schedule' : 'off' })} 
-            title={soundEnabled ? 'Silenciar som da TV' : 'Ativar som da TV'}
-            className={`w-7 h-[22px] rounded-md border flex items-center justify-center transition-all active:scale-95 ${
-              soundEnabled 
-                ? TV_CONFIG.soundOnClass 
-                : 'bg-red-500/10 text-red-500 border-red-500/30'
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-              {soundEnabled ? (
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-              ) : (
-                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-              )}
-            </svg>
-          </button>
-          <Clock />
+            <Clock />
+          </div>
         </div>
-      </header>
 
-      {!isSlidePage &&
-        data?.weeklyGoal &&
-        data.weeklyGoal.targetAmount > 0 &&
-        data.weeklyGoal.showWeeklyBar !== false && (
-        <div className="px-5 mb-3 space-y-1">
-          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
-            <span>{data.weeklyGoal.label}</span>
-            <span className="text-yellow-500/90 tabular-nums">{Math.round(weeklyPercent)}%</span>
+        {headerGoals.length > 0 && (
+          <div className="mt-3 space-y-2 px-1">
+            {headerGoals.map((goal) => {
+              const percent = goalBarPercent(goal.currentAmount, goal.targetAmount);
+              return (
+                <div key={goal.id} className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    <span>{displayHeaderGoalLabel(goal, headerGoalPeriodCounts[goal.period])}</span>
+                    <span className="text-yellow-500/90 tabular-nums">{Math.round(percent)}%</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-white/5 overflow-hidden border border-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
+                      style={{ width: `${Math.min(100, percent)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="h-2.5 rounded-full bg-white/5 overflow-hidden border border-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-500 transition-all"
-              style={{ width: `${weeklyPercent}%` }}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </header>
 
       <div className={`flex w-full px-12 mb-2 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-600 italic transition-opacity ${hasAnyHighlight ? 'opacity-20' : 'opacity-100'}`}>
         {isSlidePage ? (

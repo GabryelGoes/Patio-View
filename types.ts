@@ -58,6 +58,8 @@ export interface TvSlide {
   playSound?: boolean;
   /** Só tipo goal: true = R$, false = só %. */
   goalShowValues?: boolean;
+  /** Período escolhido ao inserir a meta: semanal ou mensal. A TV mostra a barra no cabeçalho. */
+  goalPeriod?: 'weekly' | 'monthly';
   /** Fixar este slide na TV (gestão no app principal). */
   pinImmediate?: boolean;
   /** Imagem/vídeo preenche toda a área da TV (sem bordas). */
@@ -70,8 +72,10 @@ export interface TvWeeklyGoal {
   label: string;
   currentAmount: number;
   targetAmount: number;
-  /** Se false, a barra de meta não aparece na TV (páginas de veículos). */
+  /** Se false, a barra de meta não aparece no cabeçalho. */
   showWeeklyBar?: boolean;
+  /** Semanal (padrão) ou mensal. A API também aceita goalPeriod / goal_period. */
+  period?: 'weekly' | 'monthly';
 }
 
 export interface WorkshopData {
@@ -79,5 +83,7 @@ export interface WorkshopData {
   vehicles: Vehicle[];
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  /** Meta mensal da playlist, quando a gestão envia o objeto separado. */
+  monthlyGoal: TvWeeklyGoal | null;
   chimeSchedule: TvChimeScheduleConfig | null;
 }
