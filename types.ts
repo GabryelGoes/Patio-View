@@ -62,6 +62,8 @@ export interface TvSlide {
   goalShowValues?: boolean;
   /** Período escolhido ao inserir a meta: semanal ou mensal. A TV mostra a barra no cabeçalho. */
   goalPeriod?: 'weekly' | 'monthly';
+  /** false quando a gestão desliga a exibição desta meta. */
+  showGoalBar?: boolean;
   /** Fixar este slide na TV (gestão no app principal). */
   pinImmediate?: boolean;
   /** Imagem/vídeo preenche toda a área da TV (sem bordas). */

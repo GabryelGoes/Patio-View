@@ -70,6 +70,36 @@ export function displayHeaderGoalLabel(goal: TvHeaderGoal, samePeriodCount: numb
   return base;
 }
 
+function isShown(value: unknown): boolean | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (value === false || value === 0 || value === '0' || value === 'false' || value === 'off' || value === 'nao' || value === 'não') {
+    return false;
+  }
+  if (value === true || value === 1 || value === '1' || value === 'true' || value === 'on' || value === 'sim') return true;
+  return null;
+}
+
+function readShowFlag(source: Record<string, unknown>, keys: string[]): boolean | null {
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+    const parsed = isShown(source[key]);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
+const SHOW_KEYS = [
+  'showWeeklyBar',
+  'show_weekly_bar',
+  'showBar',
+  'show_bar',
+  'showOnTv',
+  'show_on_tv',
+  'visible',
+  'enabled',
+  'active',
+];
+
 export function normalizePlaylistGoal(raw: unknown, fallbackPeriod: TvGoalPeriod): TvWeeklyGoal | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
@@ -78,12 +108,12 @@ export function normalizePlaylistGoal(raw: unknown, fallbackPeriod: TvGoalPeriod
   if (!Number.isFinite(currentAmount) || !Number.isFinite(targetAmount)) return null;
   const period = parseGoalPeriod(o.period ?? o.goalPeriod ?? o.goal_period, fallbackPeriod);
   const label = String(o.label ?? '').trim();
-  const showRaw = o.showWeeklyBar ?? o.show_weekly_bar ?? o.showBar ?? o.show_bar;
+  const show = readShowFlag(o, SHOW_KEYS);
   return {
     label: label || headerGoalLabel(period),
     currentAmount,
     targetAmount,
-    showWeeklyBar: showRaw !== false,
+    showWeeklyBar: show !== false,
     period,
   };
 }
@@ -96,7 +126,8 @@ export function attachSlideGoalPeriod(slide: TvSlide, raw: Record<string, unknow
     fromField != null && String(fromField).trim() !== ''
       ? parseGoalPeriod(fromField, inferred ?? 'weekly')
       : (inferred ?? 'weekly');
-  return { ...slide, goalPeriod };
+  const show = readShowFlag(raw, SHOW_KEYS);
+  return { ...slide, goalPeriod, showGoalBar: show === null ? undefined : show };
 }
 
 function goalFromAmounts(
@@ -128,12 +159,17 @@ export function collectHeaderGoals(
   pushPlaylist(weeklyGoal, 'weekly-goal', 'weekly');
   pushPlaylist(monthlyGoal, 'monthly-goal', 'monthly');
 
+  const hiddenPeriods = new Set<TvGoalPeriod>();
+  if (weeklyGoal?.showWeeklyBar === false) hiddenPeriods.add(weeklyGoal.period ?? 'weekly');
+  if (monthlyGoal?.showWeeklyBar === false) hiddenPeriods.add(monthlyGoal.period ?? 'monthly');
+
   for (const slide of slides ?? []) {
-    if (slide.slideType !== 'goal') continue;
+    if (slide.slideType !== 'goal' || slide.showGoalBar === false) continue;
     const period =
       slide.goalPeriod ??
       inferGoalPeriodFromText(slide.goalLabel || slide.title) ??
       'weekly';
+    if (hiddenPeriods.has(period)) continue;
     const currentAmount = slide.goalCurrent ?? 0;
     const targetAmount = slide.goalTarget ?? 0;
     const duplicated = goals.some(
