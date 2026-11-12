@@ -19,7 +19,7 @@ const getStageColors = (stage: Stage) => {
   }
 
   if (s.includes('garantia')) return 'bg-red-700 text-white border-red-600';
-  if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-zinc-900 text-zinc-500 border-zinc-800';
+  if (s.includes('avaliação') && s.includes('aguardando')) return 'bg-zinc-900 text-zinc-100 border-zinc-700';
   if (s.includes('aguardando aprovação') || s.includes('aguardando aprovacao')) return 'bg-amber-500 text-amber-950 border-amber-600';
   if (s.includes('avaliação') || s.includes('aprovação')) return 'bg-yellow-400 text-yellow-950 border-yellow-300';
   
@@ -158,6 +158,31 @@ const MercosulPlate: React.FC<{ plate: string }> = ({ plate }) => {
   );
 };
 
+function formatWaiting(ms: number): string {
+  const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  return `${hours}h ${String(minutes).padStart(2, '0')}min`;
+}
+
+/** Tempo corrido desde o cadastro. Só aparece em Aguardando Avaliação. */
+const WaitingSinceRegistration: React.FC<{ since?: string }> = ({ since }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const start = since ? new Date(since).getTime() : Number.NaN;
+  const label = Number.isFinite(start) ? formatWaiting(now - start) : '0h 00min';
+  return (
+    <p className="w-full text-center text-[1.4625rem] font-black tabular-nums leading-none tracking-tight text-red-500">
+      {label}
+    </p>
+  );
+};
+
 const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyHighlight, isAlerting }) => {
   const [showAnim, setShowAnim] = useState(false);
   const colorClass = getStageColors(vehicle.stage);
@@ -213,6 +238,7 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
   };
 
   const stageFontClass = getFontSizeClass(displayStage);
+  const awaitingEval = isAwaitingEvaluationStage(vehicle.stage);
 
   return (
     <div
@@ -228,88 +254,71 @@ const VehicleRow: React.FC<VehicleRowProps> = ({ vehicle, isHighlighted, hasAnyH
       style={cardAccentStyle}
     >
       <div className="w-[22%] flex flex-col justify-center overflow-visible font-black">
-        <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
+        <h2 className="text-[2.19375rem] font-black tracking-tighter uppercase italic leading-[1.2] truncate overflow-visible">
           {vehicle.model.replace('Land Rover', '').trim()}
         </h2>
       </div>
 
-      <div className="w-[16%] border-l border-current/10 pl-6 overflow-hidden">
-        <div className="flex flex-col uppercase font-black tracking-tight leading-[1.05]">
+      <div className="w-[16%] border-l border-current/10 px-2 overflow-hidden flex items-center justify-center">
+        <div className="flex w-full flex-col items-center text-center uppercase font-black tracking-tight leading-[1.05]">
           {(vehicle.client || 'Cliente')
             .split(/\s+/)
             .filter(Boolean)
             .slice(0, 2)
             .map((word, i) => (
-              <span key={i} className="text-xl truncate">{word}</span>
+              <span key={i} className="text-[1.4625rem] truncate">{word}</span>
             ))}
         </div>
       </div>
 
-      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'pl-0 pr-0 justify-center' : 'pl-6 pr-2'}`}>
-        <div className={`flex items-center gap-2 h-full w-full overflow-hidden ${isFinalizado || isGarantia || isFaseDeTeste || isPecasDisponiveis ? 'justify-center' : ''}`}>
-          {isEmServico ? (
-            <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
-              <CarLiftAnimation />
-              <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
+      <div className={`w-[34%] border-l border-current/10 relative h-full flex items-center overflow-hidden ${isEmServico ? 'pl-6 pr-2' : 'justify-center px-2'}`}>
+        {isEmServico ? (
+          <div className="flex items-center justify-center gap-1 w-full -translate-x-[30%]">
+            <CarLiftAnimation />
+            <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
+          </div>
+        ) : isFinalizado ? (
+          <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
+              <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap text-center`}>{displayStage}</p>
             </div>
-          ) : null}
-          {!isFinalizado && !isEmServico && isAvaliacaoTecnica && <MagnifierAnimation />}
-          
-          {isAguardando && !isFaseDeTeste && !isNaoAprovado && !isFinalizado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
-            <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative mr-2 overflow-visible">
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
-                <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-              </div>
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
-                <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
-              </div>
+            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} overflow-hidden`}>
+              <FastDiscAnimation />
             </div>
-          )}
-          
-          <div className={`flex items-center overflow-hidden h-full relative ${isGarantia || isFaseDeTeste || isFinalizado || isPecasDisponiveis ? 'w-full justify-center' : 'w-full'}`}>
-            {isFaseDeTeste ? (
-               <div className="flex items-center justify-center w-full gap-2 -translate-x-[15%]">
-                  <FaseDeTesteCarAnimation />
-                  <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
-               </div>
-            ) : isPecasDisponiveis ? (
-              <div className="flex items-center justify-center gap-2 w-full -translate-x-[8%]">
-                <PecasDisponiveisIcon />
-                <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap`}>{displayStage}</p>
-              </div>
-            ) : isFinalizado ? (
-              <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
-                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-0 -translate-y-4' : 'opacity-100 translate-y-0'}`}>
-                   <p className={`font-black uppercase italic tracking-tighter ${stageFontClass} leading-[1.1] whitespace-nowrap text-center w-full`}>{displayStage}</p>
+          </div>
+        ) : (
+          <div className="flex max-w-full items-center justify-center gap-2">
+            {isAvaliacaoTecnica && <MagnifierAnimation />}
+            {isFaseDeTeste && <FaseDeTesteCarAnimation />}
+            {isPecasDisponiveis && <PecasDisponiveisIcon />}
+            {isGarantia && <GearAnimation />}
+            {isAguardando && !isNaoAprovado && !isAvaliacaoTecnica && !isEmServico && !isGarantia && !isPecasDisponiveis && (
+              <div className="w-6 h-6 flex items-center justify-center border-2 border-current rounded-full shrink-0 relative overflow-visible">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-slow">
+                  <div className="absolute left-1/2 bottom-0 w-[2px] h-[5px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
                 </div>
-                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${showAnim ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'} overflow-hidden`}>
-                   <FastDiscAnimation />
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 animate-clock-hand-fast">
+                  <div className="absolute left-1/2 bottom-0 w-[2px] h-[7px] bg-current rounded-full -translate-x-1/2 origin-bottom" />
                 </div>
-              </div>
-            ) : isGarantia ? (
-              <div className="flex items-center justify-center gap-2 w-full -translate-x-[25%]">
-                <GearAnimation />
-                <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>{displayStage}</p>
-              </div>
-            ) : isEmServico ? null : (
-              <div className={`flex items-center gap-2 w-full`}>
-                {isAprovado && !isNaoAprovado && !isFinalizado && <span className="text-green-500 font-black text-4xl animate-bounce shrink-0 drop-shadow-md">✓</span>}
-                {isNaoAprovado && <span className="text-red-500 font-black text-3xl animate-pulse shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] mr-1">✕</span>}
-                <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap ${stageFontClass}`}>
-                  {displayStage}
-                </p>
               </div>
             )}
+            {isAprovado && !isNaoAprovado && <span className="text-green-500 font-black text-4xl animate-bounce shrink-0 drop-shadow-md">✓</span>}
+            {isNaoAprovado && <span className="text-red-500 font-black text-3xl animate-pulse shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">✕</span>}
+            <p className={`font-black uppercase italic tracking-tighter leading-[1.1] whitespace-nowrap text-center ${stageFontClass}`}>{displayStage}</p>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="w-[14%] border-l border-current/10 px-3 flex items-center justify-center h-full">
         <MercosulPlate plate={vehicle.plate} />
       </div>
 
-      <div className="w-[14%] border-l border-current/10 pl-6 h-full flex items-center">
-        <p className="text-xl font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+      <div className="w-[14%] border-l border-current/10 h-full flex items-center justify-center px-2">
+        {awaitingEval ? (
+          <WaitingSinceRegistration since={vehicle.registeredAt} />
+        ) : (
+          <p className="w-full text-center text-[1.4625rem] font-bold uppercase truncate tracking-tight leading-[1.2] opacity-90">{vehicle.mechanic}</p>
+        )}
       </div>
 
       <style>{`

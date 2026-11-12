@@ -8,7 +8,8 @@ import {
   type TvSettings,
   type TvSoundEvent,
 } from './config/tvSettings';
-import { TV_CONFIG } from './config/tvMode';
+import { TV_CONFIG, clearTvMode } from './config/tvMode';
+import { useTvFullscreen } from './hooks/useTvFullscreen';
 import { SOUND_PRESETS, playPreset } from './utils/tvSounds';
 
 interface TvSettingsPanelProps {
@@ -109,6 +110,8 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
     setTvSettings({ ...settings, businessHours: { ...settings.businessHours, ...p } });
 
   const muted = settings.soundMode === 'off';
+  const fullscreen = useTvFullscreen();
+  const soundOn = settings.soundMode !== 'off';
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm">
@@ -116,14 +119,51 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
         <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-5 py-3">
           <div>
             <h2 className="text-lg font-black text-white">Configurações da TV</h2>
-            <p className="text-xs text-zinc-400">Salvo neste dispositivo · Painel {TV_CONFIG.label}</p>
+            <p className="text-xs text-zinc-400">Salvo neste dispositivo · Painel {TV_CONFIG.sectionLabel}</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-bold text-white hover:bg-zinc-700">
             Fechar
           </button>
         </header>
 
-        <div className="grid flex-1 grid-cols-1 gap-3 p-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+          <Section title="Controles da TV">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => clearTvMode()}
+                className="rounded-2xl border border-zinc-600 bg-zinc-800 px-4 py-4 text-sm font-black uppercase tracking-wide text-white hover:bg-zinc-700"
+              >
+                Trocar painel
+              </button>
+              {fullscreen.supported && (
+                <button
+                  type="button"
+                  onClick={() => void fullscreen.toggle()}
+                  className={`rounded-2xl border px-4 py-4 text-sm font-black uppercase tracking-wide ${
+                    fullscreen.active
+                      ? 'border-[#00c247]/40 bg-[#009c3b]/20 text-[#00c247]'
+                      : 'border-zinc-600 bg-zinc-800 text-white hover:bg-zinc-700'
+                  }`}
+                >
+                  {fullscreen.active ? 'Sair da tela cheia' : 'Tela cheia'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => patch({ soundMode: soundOn ? 'off' : 'schedule' })}
+                className={`rounded-2xl border px-4 py-4 text-sm font-black uppercase tracking-wide ${
+                  soundOn
+                    ? TV_CONFIG.soundOnClass
+                    : 'border-red-500/40 bg-red-500/10 text-red-400'
+                }`}
+              >
+                {soundOn ? 'Silenciar som' : 'Ativar som'}
+              </button>
+            </div>
+          </Section>
+
+          <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-2">
           <Section title="Sons por evento — escolha o toque">
             {muted && (
               <p className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300">
@@ -241,6 +281,7 @@ const TvSettingsPanel: React.FC<TvSettingsPanelProps> = ({ onClose }) => {
                 <NumberSelect value={settings.overlaySeconds} options={[5, 7, 10, 12, 15]} unit="s" onChange={(v) => patch({ overlaySeconds: v })} />
               </Row>
             </Section>
+          </div>
           </div>
         </div>
 

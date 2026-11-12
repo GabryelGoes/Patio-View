@@ -5,7 +5,7 @@ import {
   toggleBrowserFullscreen,
 } from '../utils/tvFullscreen';
 
-/** Tela cheia só pelo botão no cabeçalho — sem capturar toques na página. */
+/** Tela cheia pelo controle em Configurações — sem capturar toques na página. */
 export function useTvFullscreen() {
   const supported = supportsBrowserFullscreen();
   const [active, setActive] = useState(isBrowserFullscreen);

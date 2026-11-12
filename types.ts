@@ -29,6 +29,8 @@ export interface Vehicle {
   rawDueDate?: Date; // Data original para cálculos
   mechanic: string;
   lastActivity: string;
+  /** ISO de created_at. Usado para o tempo corrido em Aguardando Avaliação. */
+  registeredAt?: string;
   /** Etiqueta de garantia (vem da API): persiste em qualquer etapa até remover no modal do sistema principal. Na TV, o aro vermelho só aparece quando garantiaTag é true e o veículo NÃO está na etapa Garantia. */
   garantiaTag?: boolean;
   /** Compartimento da bancada do laboratório (1..24). NULL/undefined = fora da bancada. */
@@ -58,6 +60,10 @@ export interface TvSlide {
   playSound?: boolean;
   /** Só tipo goal: true = R$, false = só %. */
   goalShowValues?: boolean;
+  /** Período escolhido ao inserir a meta: semanal ou mensal. A TV mostra a barra no cabeçalho. */
+  goalPeriod?: 'weekly' | 'monthly';
+  /** false quando a gestão desliga a exibição desta meta. */
+  showGoalBar?: boolean;
   /** Fixar este slide na TV (gestão no app principal). */
   pinImmediate?: boolean;
   /** Imagem/vídeo preenche toda a área da TV (sem bordas). */
@@ -70,8 +76,10 @@ export interface TvWeeklyGoal {
   label: string;
   currentAmount: number;
   targetAmount: number;
-  /** Se false, a barra de meta não aparece na TV (páginas de veículos). */
+  /** Se false, a barra de meta não aparece no cabeçalho. */
   showWeeklyBar?: boolean;
+  /** Semanal (padrão) ou mensal. A API também aceita goalPeriod / goal_period. */
+  period?: 'weekly' | 'monthly';
 }
 
 export interface WorkshopData {
@@ -79,5 +87,7 @@ export interface WorkshopData {
   vehicles: Vehicle[];
   tvSlides: TvSlide[];
   weeklyGoal: TvWeeklyGoal | null;
+  /** Meta mensal da playlist, quando a gestão envia o objeto separado. */
+  monthlyGoal: TvWeeklyGoal | null;
   chimeSchedule: TvChimeScheduleConfig | null;
 }

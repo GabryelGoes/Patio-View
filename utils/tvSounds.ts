@@ -19,6 +19,40 @@ function createCtx(): AudioContext | null {
   }
 }
 
+/** Um único contexto. Criar um novo a cada saudação estoura o limite do navegador e o som some. */
+let sharedCtx: AudioContext | null = null;
+let unlockBound = false;
+
+function getAudioContext(): AudioContext | null {
+  if (sharedCtx && sharedCtx.state !== 'closed') return sharedCtx;
+  sharedCtx = createCtx();
+  return sharedCtx;
+}
+
+async function resumeCtx(ctx: AudioContext): Promise<boolean> {
+  if (ctx.state === 'running') return true;
+  try {
+    await ctx.resume();
+  } catch {
+    return false;
+  }
+  return ctx.state === 'running';
+}
+
+function bindAudioUnlock(): void {
+  if (unlockBound || typeof window === 'undefined') return;
+  unlockBound = true;
+  const unlock = () => {
+    const ctx = getAudioContext();
+    if (ctx) void resumeCtx(ctx);
+  };
+  window.addEventListener('pointerdown', unlock, { passive: true });
+  window.addEventListener('keydown', unlock);
+  window.addEventListener('touchstart', unlock, { passive: true });
+}
+
+bindAudioUnlock();
+
 function note(
   ctx: AudioContext,
   type: OscillatorType,
@@ -39,6 +73,10 @@ function note(
   gain.connect(ctx.destination);
   osc.start(start);
   osc.stop(start + duration + 0.03);
+  osc.onended = () => {
+    osc.disconnect();
+    gain.disconnect();
+  };
 }
 
 /** Notas (Hz) usadas pelos presets. */
@@ -189,13 +227,15 @@ export async function playPreset(id: string): Promise<void> {
   const v = getMasterVolume();
   if (v <= 0.0005) return;
   const preset = PRESET_MAP[id] ?? PRESET_MAP[DEFAULT_PRESET_ID];
-  const ctx = createCtx();
+  const ctx = getAudioContext();
   if (!ctx) return;
   try {
-    if (ctx.state === 'suspended') await ctx.resume();
-    preset.render(ctx, ctx.currentTime, v);
+    const running = await resumeCtx(ctx);
+    if (!running) return;
+    preset.render(ctx, ctx.currentTime + 0.03, v);
   } catch (e) {
     console.warn(e);
+    if (sharedCtx === ctx && ctx.state === 'closed') sharedCtx = null;
   }
 }
 
