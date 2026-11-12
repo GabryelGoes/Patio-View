@@ -19,9 +19,15 @@ const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
   const [isExiting, setIsExiting] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const playedRef = useRef(false);
 
   useEffect(() => {
-    if (soundEnabled) void playEventSound('pecasDisponiveis');
+    if (!soundEnabled || playedRef.current) return;
+    playedRef.current = true;
+    void playEventSound('pecasDisponiveis');
+  }, [soundEnabled]);
+
+  useEffect(() => {
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
@@ -31,7 +37,7 @@ const PecasDisponiveisOverlay: React.FC<PecasDisponiveisOverlayProps> = ({
       clearTimeout(timer);
       if (completeTimer !== null) clearTimeout(completeTimer);
     };
-  }, [soundEnabled, durationMs]);
+  }, [durationMs]);
 
   return (
     <div

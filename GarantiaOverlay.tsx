@@ -15,9 +15,15 @@ const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, 
   const [isExiting, setIsExiting] = useState(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const playedRef = useRef(false);
 
   useEffect(() => {
-    if (soundEnabled) void playEventSound('garantia');
+    if (!soundEnabled || playedRef.current) return;
+    playedRef.current = true;
+    void playEventSound('garantia');
+  }, [soundEnabled]);
+
+  useEffect(() => {
     let completeTimer: ReturnType<typeof setTimeout> | null = null;
     const timer = setTimeout(() => {
       setIsExiting(true);
@@ -27,7 +33,7 @@ const GarantiaOverlay: React.FC<GarantiaOverlayProps> = ({ vehicle, onComplete, 
       clearTimeout(timer);
       if (completeTimer !== null) clearTimeout(completeTimer);
     };
-  }, [soundEnabled, durationMs]);
+  }, [durationMs]);
 
   return (
     <div className={`fixed inset-0 z-[250] transition-transform duration-1000 cubic-bezier(0.7, 0, 0.3, 1) ${isExiting ? 'translate-y-[-100%]' : 'translate-y-0'}`}>
